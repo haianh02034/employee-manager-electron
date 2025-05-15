@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Employee Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Employee Manager</h1>
+  <button id="addEmployeeBtn">Thêm NV</button>
+  <div id="addEmployeeForm" style="display:none;">
+    <label for="stt">STT:</label><input type="text" id="stt" name="stt"><br>
+    <label for="hoTen">Họ tên:</label><input type="text" id="hoTen" name="hoTen"><br>
+    <label for="email">Email:</label><input type="email" id="email" name="email"><br>
+    <label for="soDienThoai">Số điện thoại:</label><input type="tel" id="soDienThoai" name="soDienThoai"><br>
+    <button id="saveEmployeeBtn">Lưu</button>
+  </div>
+  <button id="bulkEditBtn">Chỉnh sửa hàng loạt</button>
+  <div id="bulkEditForm" style="display:none;">
+    <label for="columnIndices">Column Indices (comma-separated):</label><input type="text" id="columnIndices" name="columnIndices"><br>
+    <label for="newValues">New Values (comma-separated):</label><input type="text" id="newValues" name="newValues"><br>
+    <button id="saveBulkEditBtn">Lưu</button>
+  </div>
+  <div id="app"></div>
+  <script>
+    require('./renderer.js');
+    displayData();
+  </script>
+</body>
+</html>
