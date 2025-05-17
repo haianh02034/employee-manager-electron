@@ -188,6 +188,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+  if (deleteSelectedBtn) {
+    deleteSelectedBtn.addEventListener('click', async () => {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedRowIndices = [];
+
+      checkboxes.forEach(checkbox => {
+        if (checkbox.dataset.rowIndex) {
+          selectedRowIndices.push(parseInt(checkbox.dataset.rowIndex));
+        }
+      });
+
+      if (selectedRowIndices.length === 0) {
+        alert('Vui lòng chọn ít nhất một hàng để xóa.');
+        return;
+      }
+
+      if (confirm(`Bạn có chắc chắn muốn xóa ${selectedRowIndices.length} hàng đã chọn không?`)) {
+        try {
+          // Sort indices in descending order to avoid issues with shifting rows
+          selectedRowIndices.sort((a, b) => b - a);
+
+          for (const rowIndex of selectedRowIndices) {
+            // rowIndex is 1-based from Google Sheet data (skipping header)
+            // window.deleteData expects 1-based sheet row number
+            await window.deleteData(spreadsheetId, rowIndex + 1);
+          }
+
+          alert('Các hàng đã chọn đã được xóa thành công!');
+          displayData(); // Refresh data display
+
+        } catch (error) {
+          console.error('Error deleting selected rows:', error);
+          alert('Lỗi khi xóa các hàng đã chọn. Kiểm tra console để biết chi tiết.');
+        }
+      }
+    });
+  }
+
   if (addEmployeeForm) {
     addEmployeeForm.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -455,16 +494,38 @@ document.addEventListener('DOMContentLoaded', () => {
   if (contextMenuDelete) {
     contextMenuDelete.addEventListener('click', async () => {
       console.log('Delete clicked');
-      const rowIndex = parseInt(customContextMenu.dataset.rowIndex);
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedRowIndices = [];
 
-      if (confirm('Bạn có chắc chắn muốn xóa hàng này không?')) {
+      checkboxes.forEach(checkbox => {
+        if (checkbox.dataset.rowIndex) {
+          selectedRowIndices.push(parseInt(checkbox.dataset.rowIndex));
+        }
+      });
+
+      if (selectedRowIndices.length === 0) {
+        alert('Vui lòng chọn ít nhất một hàng để xóa.');
+        hideContextMenu();
+        return;
+      }
+
+      if (confirm(`Bạn có chắc chắn muốn xóa ${selectedRowIndices.length} hàng đã chọn không?`)) {
         try {
-          await window.deleteData(spreadsheetId, rowIndex + 2);
-          alert('Hàng đã được xóa thành công!');
-          displayData();
+          // Sort indices in descending order to avoid issues with shifting rows
+          selectedRowIndices.sort((a, b) => b - a);
+
+          for (const rowIndex of selectedRowIndices) {
+            // rowIndex is 1-based from Google Sheet data (skipping header)
+            // window.deleteData expects 1-based sheet row number
+            await window.deleteData(spreadsheetId, rowIndex + 1);
+          }
+
+          alert('Các hàng đã chọn đã được xóa thành công!');
+          displayData(); // Refresh data display
+
         } catch (error) {
-          console.error('Error deleting row:', error);
-          alert('Lỗi khi xóa hàng. Kiểm tra console để biết chi tiết.');
+          console.error('Error deleting selected rows:', error);
+          alert('Lỗi khi xóa các hàng đã chọn. Kiểm tra console để biết chi tiết.');
         }
       }
       hideContextMenu();
