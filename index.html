@@ -13,13 +13,25 @@
             <div class="filter-container">
                 <input type="text" id="filter-stt" placeholder="Lọc theo STT">
                 <input type="text" id="filter-name" placeholder="Lọc theo Tên">
-                <input type="text" id="filter-dob" placeholder="Lọc theo Ngày sinh">
-                <input type="text" id="filter-address" placeholder="Lọc theo Địa chỉ">
+                <!-- <input type="text" id="filter-dob" placeholder="Lọc theo Ngày sinh">
+                <input type="text" id="filter-address" placeholder="Lọc theo Địa chỉ"> -->
                 <input type="text" id="filter-phone" placeholder="Lọc theo Số điện thoại">
-                <input type="text" id="filter-position" placeholder="Lọc theo Chức vụ">
-                <input type="text" id="filter-department" placeholder="Lọc theo Phòng ban">
-                <input type="text" id="filter-start-date" placeholder="Lọc theo Ngày vào làm">
-                <input type="text" id="filter-status" placeholder="Lọc theo Trạng thái">
+                <!-- <input type="text" id="filter-position" placeholder="Lọc theo Chức vụ">
+                <input type="text" id="filter-department" placeholder="Lọc theo Phòng ban"> -->
+                <input type="text" id="filter-managing-unit" placeholder="Lọc theo Đơn vị chủ quản">
+                <!-- <input type="text" id="filter-start-date" placeholder="Lọc theo Ngày vào làm"> -->
+                <select id="filter-gender">
+                    <option value="">Lọc theo Giới tính</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                </select>
+                <select id="filter-status">
+                    <option value="">Lọc theo Trạng thái</option>
+                    <option value="Đang làm">Đang làm</option>
+                    <option value="Đã nghỉ">Đã nghỉ</option>
+                    <option value="Xa thải">Xa thải</option>
+                </select>
                 <button id="apply-filter">Áp dụng bộ lọc</button>
                 <button id="clear-filter">Xóa bộ lọc</button>
             </div>

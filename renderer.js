@@ -101,24 +101,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!table) return;
 
     const rows = table.querySelectorAll('tbody tr');
-    const filterInputs = document.querySelectorAll('.filter-container input[type="text"]');
-    const filterValues = Array.from(filterInputs).map(input => input.value.toLowerCase());
+
+    // Get filter values from specific inputs and selects
+    const filterStt = document.getElementById('filter-stt').value.toLowerCase();
+    const filterName = document.getElementById('filter-name').value.toLowerCase();
+    const filterPhone = document.getElementById('filter-phone').value.toLowerCase();
+    const filterManagingUnit = document.getElementById('filter-managing-unit').value.toLowerCase();
+    const filterGender = document.getElementById('filter-gender').value.toLowerCase(); // Get value from select
+    const filterStatus = document.getElementById('filter-status').value.toLowerCase(); // Get value from select
 
     rows.forEach(row => {
       let match = true;
       const cells = row.querySelectorAll('td');
 
-      // Start from index 1 to skip the checkbox cell
-      for (let i = 1; i < cells.length; i++) {
-        const cell = cells[i];
-        const cellText = cell.textContent.toLowerCase();
-        // Adjust filterValues index to match the cell index (subtract 1 for checkbox)
-        const filterValue = filterValues[i - 1];
-
-        if (filterValue && !cellText.includes(filterValue)) {
+      // Check against specific columns (adjust indices based on desiredHeaders and checkbox column)
+      // STT (Column 0 in desiredHeaders, index 1 in table cells due to checkbox)
+      if (filterStt && !cells[1].textContent.toLowerCase().includes(filterStt)) {
+        match = false;
+      }
+      // Họ và tên (Column 1 in desiredHeaders, index 2 in table cells)
+      if (match && filterName && !cells[2].textContent.toLowerCase().includes(filterName)) {
+        match = false;
+      }
+      // Số điện thoại (Column 5 in desiredHeaders, index 6 in table cells)
+      if (match && filterPhone && !cells[6].textContent.toLowerCase().includes(filterPhone)) {
+        match = false;
+      }
+      // Đơn vị chủ quản (Column 10 in desiredHeaders, index 11 in table cells)
+      if (match && filterManagingUnit && !cells[11].textContent.toLowerCase().includes(filterManagingUnit)) {
+        match = false;
+      }
+      // Giới tính (Column 3 in desiredHeaders, index 4 in table cells)
+      if (match && filterGender && !cells[4].textContent.toLowerCase().includes(filterGender)) {
           match = false;
-          break; // No need to check other cells in this row
-        }
+      }
+      // Trạng thái (Column 11 in desiredHeaders, index 12 in table cells)
+      if (match && filterStatus && !cells[12].textContent.toLowerCase().includes(filterStatus)) {
+        match = false;
       }
 
       row.style.display = match ? '' : 'none';
@@ -655,6 +674,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const stickyHeaderHeight = stickyHeader.offsetHeight;
       tableHead.style.top = `${stickyHeaderHeight}px`;
     }
+  }
+
+  // Event listener for Apply Filter button
+  const applyFilterBtn = document.getElementById('apply-filter');
+  if (applyFilterBtn) {
+    applyFilterBtn.addEventListener('click', filterTable);
+  }
+
+  // Event listener for Clear Filter button
+  const clearFilterBtn = document.getElementById('clear-filter');
+  if (clearFilterBtn) {
+    clearFilterBtn.addEventListener('click', () => {
+      const filterInputs = document.querySelectorAll('.filter-container input[type="text"]');
+      filterInputs.forEach(input => input.value = '');
+      const filterSelects = document.querySelectorAll('.filter-container select');
+      filterSelects.forEach(select => select.value = ''); // Reset select values
+      filterTable(); // Apply filter after clearing to show all data
+    });
   }
 
   // Initial data display
