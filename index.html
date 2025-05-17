@@ -66,11 +66,16 @@
 
         <div class="bulk-edit-form-container" id="bulk-edit-form-container">
             <h2>Chỉnh sửa nhân viên hàng loạt</h2>
-            <form id="bulk-edit-form">
-                <textarea id="bulk-edit-data" rows="10" cols="50" placeholder="Dán dữ liệu vào đây theo định dạng: STT,Họ và tên,Ngày sinh,Địa chỉ,Số điện thoại,Chức vụ,Phòng ban,Ngày vào làm,Trạng thái"></textarea>
-                <button type="submit">Áp dụng chỉnh sửa hàng loạt</button>
-                <button type="button" id="cancel-bulk-edit">Hủy</button>
-            </form>
+            <button class="close-button" id="close-bulk-edit-form">&times;</button>
+            <div class="bulk-edit-controls">
+                <label for="bulk-edit-field-select">Chọn trường:</label>
+                <select id="bulk-edit-field-select"></select>
+                <div id="bulk-edit-value-input">
+                    <!-- Dynamic input/select for value will be added here -->
+                </div>
+            </div>
+            <button id="save-bulk-edit-btn">Lưu hàng loạt</button>
+            <button id="cancel-bulk-edit-btn">Hủy</button>
         </div>
 
         <table id="employee-table">

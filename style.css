@@ -1,131 +1,305 @@
+/* General body styling */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
     margin: 0;
     padding: 20px;
-    background-color: #f4f4f4;
+    background-color: #f4f7f6; /* Light grey background */
+    color: #333; /* Dark grey text */
 }
 
 .container {
-    background-color: #fff;
+    margin: 0 auto;
+    background-color: #fff; /* White background for content area */
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 h1, h2 {
-    color: #333;
+    color: #0056b3; /* A shade of blue for headings */
 }
 
-.filter-container, .button-container {
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.sticky-header {
-    position: sticky;
-    top: 0;
-    background-color: #fff; /* Add a background to prevent content showing through */
-    z-index: 10; /* Ensure it stays above other content */
-}
-
-.filter-container input[type="text"],
-.add-employee-form-container input[type="text"],
-.add-employee-form-container date-input,
-.bulk-edit-form-container textarea {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.filter-container button,
-.button-container button,
-.add-employee-form-container button,
-.bulk-edit-form-container button {
-    padding: 8px 15px;
-    background-color: #5cb85c;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.filter-container button:hover,
-.button-container button:hover,
-.add-employee-form-container button:hover,
-.bulk-edit-form-container button:hover {
-    background-color: #4cae4c;
-}
-
-#clear-filter, #cancel-add-employee, #cancel-bulk-edit {
-    background-color: #d9534f;
-}
-
-#clear-filter:hover, #cancel-add-employee:hover, #cancel-bulk-edit:hover {
-    background-color: #c9302c;
-}
-
-
-table {
+/* Basic styling for the table */
+#employee-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-table, th, td {
-    border: 1px solid #ddd;
-}
-
-th, td {
-    padding: 10px;
+#employee-table th, #employee-table td {
+    border: 1px solid #e0e0e0; /* Lighter grey border */
+    padding: 12px 15px; /* Increased padding */
     text-align: left;
 }
 
-th {
-    background-color: #f2f2f2;
+#employee-table th {
+    background-color: #e9ecef; /* Light grey background for header */
+    font-weight: bold;
+    position: sticky;
+    top: 0; /* This will be adjusted by JavaScript */
+    z-index: 1; /* Ensure header is above content */
 }
 
-tr:nth-child(even) {
-    background-color: #f9f9f9;
+#employee-table tbody tr:nth-child(even) {
+    background-color: #f8f9fa; /* Slightly darker background for even rows */
 }
+
+#employee-table tbody tr:hover {
+    background-color: #e2f0ff; /* Light blue on hover */
+}
+
+
+/* Style for the sticky header container */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: #fff; /* Match background for seamless look */
+    z-index: 2; /* Ensure sticky header is above table header */
+    padding-top: 15px; /* Add some space above filters/buttons */
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dee2e6; /* Optional: Add a border */
+    margin-bottom: 20px;
+}
+
+.filter-container, .button-container {
+    display: flex; /* Use flexbox for layout */
+    gap: 10px; /* Space between items */
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    margin-bottom: 15px;
+}
+
+.filter-container input {
+    flex-grow: 1; /* Allow inputs to grow */
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.button-container button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+#add-employee-btn {
+    background-color: #28a745; /* Green */
+    color: white;
+}
+
+#add-employee-btn:hover {
+    background-color: #218838;
+}
+
+#bulk-edit-btn {
+    background-color: #ffc107; /* Yellow */
+    color: #212529;
+}
+
+#bulk-edit-btn:hover {
+    background-color: #e0a800;
+}
+
+#delete-selected-btn {
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+
+#delete-selected-btn:hover {
+    background-color: #c82333;
+}
+
+#refresh-btn {
+    background-color: #007bff; /* Blue */
+    color: white;
+}
+
+#refresh-btn:hover {
+    background-color: #0056b3;
+}
+
+#apply-filter, #clear-filter {
+    background-color: #6c757d; /* Grey */
+    color: white;
+}
+
+#apply-filter:hover, #clear-filter:hover {
+    background-color: #5a6268;
+}
+
 
 /* Modal Overlay */
 .modal-overlay {
+    display: none; /* Hidden by default */
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Dimmed background */
-    z-index: 999; /* Below the modal */
-    display: none; /* Hidden by default */
+    background-color: rgba(0, 0, 0, 0.6); /* Slightly darker semi-transparent black */
+    z-index: 1000; /* Sit on top */
 }
 
-/* Modal Form Container */
+/* Add Employee Form Container (Modal) */
 .add-employee-form-container {
+    display: none; /* Hidden by default */
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #fff; /* White background for the form */
-    padding: 20px;
+    background-color: white;
+    padding: 30px; /* Increased padding */
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* Above the overlay */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* More prominent shadow */
+    z-index: 1001; /* Sit on top of overlay */
+    max-width: 500px;
+    width: 90%;
+}
+
+.add-employee-form-container h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.add-employee-form input,
+.add-employee-form select {
+    display: block;
+    width: 100%; /* Full width */
+    margin-bottom: 15px; /* Increased margin */
+    padding: 12px; /* Increased padding */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.add-employee-form button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.add-employee-form button[type="submit"] {
+    background-color: #28a745; /* Green */
+    color: white;
+}
+
+.add-employee-form button[type="submit"]:hover {
+    background-color: #218838;
+}
+
+#cancel-add-employee {
+    background-color: #6c757d; /* Grey */
+    color: white;
+}
+
+#cancel-add-employee:hover {
+    background-color: #5a6268;
+}
+
+
+.close-button {
+    position: absolute;
+    top: 15px; /* Adjusted position */
+    right: 15px; /* Adjusted position */
+    font-size: 24px; /* Increased size */
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: #6c757d; /* Grey color */
+    transition: color 0.3s ease;
+}
+
+.close-button:hover {
+    color: #343a40; /* Darker grey on hover */
+}
+
+
+/* Bulk Edit Form Container (Modal) */
+.bulk-edit-form-container {
     display: none; /* Hidden by default */
-    max-width: 500px; /* Limit modal width */
-    width: 90%; /* Responsive width */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 30px; /* Increased padding */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* More prominent shadow */
+    z-index: 1001; /* Sit on top of overlay */
+    max-width: 400px;
+    width: 90%;
+}
+
+.bulk-edit-form-container h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.bulk-edit-controls {
+    margin-bottom: 20px; /* Increased margin */
+}
+
+.bulk-edit-controls label {
+    display: block;
+    margin-bottom: 8px; /* Increased margin */
+    font-weight: bold;
+    color: #555; /* Slightly darker label color */
+}
+
+.bulk-edit-controls select,
+.bulk-edit-controls input[type="text"],
+.bulk-edit-controls input[type="date"] {
+    width: 100%; /* Full width */
+    padding: 12px; /* Increased padding */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    margin-bottom: 15px; /* Increased margin */
+    display: block; /* Ensure they take full width */
+    font-size: 1rem;
 }
 
 
-.add-employee-form-container form, .bulk-edit-form-container form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.bulk-edit-form-container button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
 }
 
+#save-bulk-edit-btn {
+    background-color: #28a745; /* Green */
+    color: white;
+}
+
+#save-bulk-edit-btn:hover {
+    background-color: #218838;
+}
+
+#cancel-bulk-edit-btn {
+    background-color: #6c757d; /* Grey */
+    color: white;
+}
+
+#cancel-bulk-edit-btn:hover {
+    background-color: #5a6268;
+}
+
+
+/* Custom Context Menu */
 .custom-context-menu {
     display: none;
     position: absolute;
@@ -133,6 +307,11 @@ tr:nth-child(even) {
     border: 1px solid #ccc;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 1000;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 4px;
+    overflow: hidden; /* Ensures rounded corners on list items */
 }
 
 .custom-context-menu ul {
@@ -141,18 +320,13 @@ tr:nth-child(even) {
     margin: 0;
 }
 
-.custom-context-menu ul li {
-    padding: 8px 12px;
+.custom-context-menu li {
+    padding: 10px 15px; /* Increased padding */
     cursor: pointer;
+    font-size: 0.9rem;
+    color: #333;
 }
 
-.custom-context-menu ul li:hover {
-    background-color: #f2f2f2;
-}
-
-table thead {
-    position: sticky;
-    top: 100px; /* Placeholder: Adjust based on the actual height of the sticky-header */
-    background-color: #f2f2f2; /* Add a background to prevent content showing through */
-    z-index: 10; /* Ensure it stays above other content */
+.custom-context-menu li:hover {
+    background-color: #f0f0f0;
 }

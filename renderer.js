@@ -27,9 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const addEmployeeBtn = document.getElementById('add-employee-btn');
   const cancelAddEmployeeButton = document.getElementById('cancel-add-employee');
   const closeAddEmployeeFormButton = document.getElementById('close-add-employee-form');
-  const bulkEditBtn = document.getElementById('bulkEditBtn');
-  const bulkEditForm = document.getElementById('bulkEditForm');
-  const saveBulkEditBtn = document.getElementById('saveBulkEditBtn');
   const customContextMenu = document.getElementById('custom-context-menu');
   const employeeTableBody = document.querySelector('#employee-table tbody');
 
@@ -100,47 +97,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Filtering function
   function filterTable() {
-    const filterValues = [];
-    const table = document.querySelector('.data-table');
+    const table = document.getElementById('employee-table');
     if (!table) return;
 
     const rows = table.querySelectorAll('tbody tr');
-    const filterInputs = document.querySelectorAll('.filter-input');
-
-    filterInputs.forEach(input => {
-      filterValues.push(input.value.toLowerCase());
-    });
+    const filterInputs = document.querySelectorAll('.filter-container input[type="text"]');
+    const filterValues = Array.from(filterInputs).map(input => input.value.toLowerCase());
 
     rows.forEach(row => {
       let match = true;
       const cells = row.querySelectorAll('td');
 
-      cells.forEach((cell, index) => {
-        const columnIndex = cell.cellIndex - 1; // Subtract 1 for checkbox
+      // Start from index 1 to skip the checkbox cell
+      for (let i = 1; i < cells.length; i++) {
+        const cell = cells[i];
         const cellText = cell.textContent.toLowerCase();
-        const filterValue = filterValues[columnIndex];
+        // Adjust filterValues index to match the cell index (subtract 1 for checkbox)
+        const filterValue = filterValues[i - 1];
 
         if (filterValue && !cellText.includes(filterValue)) {
           match = false;
-        }
-      });
-
-      // STT search fix (retained original regex logic)
-      const sttFilterInput = document.getElementById('filterInput0');
-      if (sttFilterInput) {
-        const sttFilterValue = sttFilterInput.value.toLowerCase();
-        if (sttFilterValue) {
-          const sttCell = row.querySelectorAll('td')[0];
-          if (sttCell) {
-            const sttCellText = sttCell.textContent.toLowerCase();
-            const regex = new RegExp(`.*${sttFilterValue}.*`);
-            if (!regex.test(sttCellText)) {
-              match = false;
-            }
-          }
+          break; // No need to check other cells in this row
         }
       }
-
 
       row.style.display = match ? '' : 'none';
     });
@@ -303,60 +282,195 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (bulkEditBtn) {
-    bulkEditBtn.addEventListener('click', () => {
-      if (bulkEditForm) bulkEditForm.style.display = 'block';
-    });
+  // Helper function to show the bulk edit modal
+  function showBulkEditModal() {
+    if (modalOverlay) modalOverlay.style.display = 'block';
+    const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
+    if (bulkEditFormContainer) bulkEditFormContainer.style.display = 'block';
   }
 
-  if (saveBulkEditBtn) {
-    saveBulkEditBtn.addEventListener('click', async () => {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-      const selectedRows = [];
+  // Helper function to show the bulk edit modal
+  function showBulkEditModal() {
+    if (modalOverlay) modalOverlay.style.display = 'block';
+    const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
+    if (bulkEditFormContainer) bulkEditFormContainer.style.display = 'block';
+  }
+
+  // Helper function to hide the bulk edit modal
+  function hideBulkEditModal() {
+    if (modalOverlay) modalOverlay.style.display = 'none';
+    const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
+    if (bulkEditFormContainer) bulkEditFormContainer.style.display = 'none';
+    const bulkEditFieldSelect = document.getElementById('bulk-edit-field-select');
+    if (bulkEditFieldSelect) bulkEditFieldSelect.innerHTML = ''; // Clear field options
+    const bulkEditValueInputDiv = document.getElementById('bulk-edit-value-input');
+    if (bulkEditValueInputDiv) bulkEditValueInputDiv.innerHTML = ''; // Clear value input
+  }
+
+  // Helper function to create the value input based on selected field
+  function createValueInput(header, columnIndex) {
+      const bulkEditValueInputDiv = document.getElementById('bulk-edit-value-input');
+      if (!bulkEditValueInputDiv) return;
+
+      bulkEditValueInputDiv.innerHTML = ''; // Clear previous input
+
+      let input;
+      if (header === 'Ngày sinh') {
+        input = document.createElement('input');
+        input.type = 'date';
+      } else if (header === 'Giới tính') {
+         input = document.createElement('select');
+         ['Nam', 'Nữ', 'Khác'].forEach(optionText => {
+            const option = document.createElement('option');
+            option.value = optionText;
+            option.textContent = optionText;
+            input.appendChild(option);
+         });
+      } else if (header === 'Trạng thái') {
+          input = document.createElement('select');
+          ['Đang làm', 'Đã nghỉ', 'Xa thải'].forEach(optionText => {
+            const option = document.createElement('option');
+            option.value = optionText;
+            option.textContent = optionText;
+            input.appendChild(option);
+          });
+      }
+       else {
+        input = document.createElement('input');
+        input.type = 'text';
+      }
+
+      input.id = 'bulk-edit-value'; // Assign a common ID for easy access
+      input.dataset.columnIndex = columnIndex; // Store column index
+      bulkEditValueInputDiv.appendChild(input);
+  }
+
+
+  const bulkEditBtn = document.getElementById('bulk-edit-btn');
+  if (bulkEditBtn) {
+    bulkEditBtn.addEventListener('click', () => {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedRowIndices = [];
 
       checkboxes.forEach(checkbox => {
-        if (checkbox.checked && checkbox.dataset.rowIndex) {
-          selectedRows.push(parseInt(checkbox.dataset.rowIndex));
+        if (checkbox.dataset.rowIndex) {
+          selectedRowIndices.push(parseInt(checkbox.dataset.rowIndex));
         }
       });
 
-      if (selectedRows.length === 0) {
-        alert('Vui lòng chọn hàng để chỉnh sửa.');
+      if (selectedRowIndices.length === 0) {
+        alert('Vui lòng chọn ít nhất một hàng để chỉnh sửa hàng loạt.');
         return;
       }
 
-      const columnIndicesInput = document.getElementById('columnIndices');
-      const newValuesInput = document.getElementById('newValues');
-
-      if (!columnIndicesInput || !newValuesInput) {
-        alert('Lỗi: Không tìm thấy trường nhập chỉnh sửa hàng loạt.');
-        return;
+      // Store selected row indices for later use in the save function
+      const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
+      if (bulkEditFormContainer) {
+        bulkEditFormContainer.dataset.selectedRowIndices = JSON.stringify(selectedRowIndices);
       }
 
-      const columnIndices = columnIndicesInput.value.split(',').map(value => parseInt(value.trim())).filter(value => !isNaN(value));
-      const newValues = newValuesInput.value.split(',').map(value => value.trim());
+      const bulkEditFieldSelect = document.getElementById('bulk-edit-field-select');
+      if (bulkEditFieldSelect) {
+        bulkEditFieldSelect.innerHTML = ''; // Clear previous options
 
-      if (columnIndices.length !== newValues.length) {
-        alert('Số lượng chỉ mục cột phải khớp với số lượng giá trị mới.');
-        return;
-      }
+        // Populate dropdown with headers (excluding STT)
+        desiredHeaders.forEach((header, index) => {
+            if (header !== "STT") { // Exclude STT from bulk edit
+                const option = document.createElement('option');
+                option.value = index; // Store column index as value
+                option.textContent = header;
+                bulkEditFieldSelect.appendChild(option);
+            }
+        });
 
-      try {
-        for (let i = 0; i < selectedRows.length; i++) {
-          const rowIndex = selectedRows[i];
-          for (let j = 0; j < columnIndices.length; j++) {
-            const columnIndex = columnIndices[j];
-            const newValue = newValues[j];
-            const range = `Sheet1!${String.fromCharCode(65 + parseInt(columnIndex))}${rowIndex + 1}`;
-            await window.updateData(spreadsheetId, range, [[newValue]]);
-          }
+        // Trigger change event to create initial value input
+        if (bulkEditFieldSelect.options.length > 0) {
+            const initialColumnIndex = parseInt(bulkEditFieldSelect.value);
+            const initialHeader = desiredHeaders[initialColumnIndex];
+            createValueInput(initialHeader, initialColumnIndex);
         }
-        alert('Dữ liệu đã được cập nhật thành công!');
-        displayData();
-      } catch (error) {
-        console.error('Error updating data:', error);
-        alert('Lỗi khi cập nhật dữ liệu. Kiểm tra console để biết chi tiết.');
       }
+
+      showBulkEditModal();
+    });
+  }
+
+  const bulkEditFieldSelect = document.getElementById('bulk-edit-field-select');
+  if (bulkEditFieldSelect) {
+      bulkEditFieldSelect.addEventListener('change', (event) => {
+          const selectedColumnIndex = parseInt(event.target.value);
+          const selectedHeader = desiredHeaders[selectedColumnIndex];
+          createValueInput(selectedHeader, selectedColumnIndex);
+      });
+  }
+
+
+  const saveBulkEditBtn = document.getElementById('save-bulk-edit-btn');
+  if (saveBulkEditBtn) {
+    saveBulkEditBtn.addEventListener('click', async () => {
+      const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
+      const selectedRowIndices = JSON.parse(bulkEditFormContainer.dataset.selectedRowIndices || '[]');
+
+      if (selectedRowIndices.length === 0) {
+        alert('Không có hàng nào được chọn để chỉnh sửa.');
+        return;
+      }
+
+      const bulkEditValueInput = document.getElementById('bulk-edit-value');
+      if (!bulkEditValueInput) {
+          alert('Lỗi: Không tìm thấy trường nhập giá trị.');
+          return;
+      }
+
+      const columnIndexToUpdate = parseInt(bulkEditValueInput.dataset.columnIndex);
+      let newValue = bulkEditValueInput.value;
+
+      // Format date to DD/MM/YYYY if it's the 'Ngày sinh' field
+      if (desiredHeaders[columnIndexToUpdate] === 'Ngày sinh' && bulkEditValueInput.type === 'date') {
+          newValue = formatDateToDDMMYYYY(newValue);
+      }
+
+      if (newValue === '') {
+          alert('Vui lòng nhập giá trị mới.');
+          return;
+      }
+
+
+      if (confirm(`Bạn có chắc chắn muốn cập nhật trường "${desiredHeaders[columnIndexToUpdate]}" thành "${newValue}" cho ${selectedRowIndices.length} hàng đã chọn không?`)) {
+        try {
+          for (const rowIndex of selectedRowIndices) {
+            // rowIndex is 1-based from Google Sheet data (skipping header)
+            // window.updateData expects 1-based sheet row number and 0-based column index (A=0, B=1, etc.)
+            // The range should be like Sheet1!A1, Sheet1!B1, etc.
+            const sheetRowNumber = rowIndex + 1; // Convert 1-based data index to 1-based sheet index
+            const sheetColumnLetter = String.fromCharCode(65 + columnIndexToUpdate); // Convert 0-based column index to letter
+            const rangeToUpdate = `Sheet1!${sheetColumnLetter}${sheetRowNumber}`;
+            await window.updateData(spreadsheetId, rangeToUpdate, [[newValue]]);
+          }
+
+          alert('Dữ liệu đã được cập nhật hàng loạt thành công!');
+          hideBulkEditModal();
+          displayData(); // Refresh data display
+
+        } catch (error) {
+          console.error('Error saving bulk edit data:', error);
+          alert('Lỗi khi lưu dữ liệu chỉnh sửa hàng loạt. Kiểm tra console để biết chi tiết.');
+        }
+      }
+    });
+  }
+
+  const cancelBulkEditBtn = document.getElementById('cancel-bulk-edit-btn');
+  if (cancelBulkEditBtn) {
+    cancelBulkEditBtn.addEventListener('click', () => {
+      hideBulkEditModal();
+    });
+  }
+
+  const closeBulkEditFormButton = document.getElementById('close-bulk-edit-form');
+  if (closeBulkEditFormButton) {
+    closeBulkEditFormButton.addEventListener('click', () => {
+      hideBulkEditModal();
     });
   }
 
