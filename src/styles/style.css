@@ -330,3 +330,45 @@ h1, h2 {
 .custom-context-menu li:hover {
     background-color: #f0f0f0;
 }
+
+/* Dashboard Styles */
+.dashboard-links {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.dashboard-links a {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.dashboard-links a:hover {
+    background-color: #0056b3;
+}
+
+/* Email Management Styles */
+.email-templates {
+    margin-bottom: 20px;
+}
+
+.email-templates ul {
+    list-style: none;
+    padding: 0;
+}
+
+.email-templates li {
+    margin-bottom: 10px;
+}
+
+.email-templates a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.email-templates a:hover {
+    text-decoration: underline;
+}

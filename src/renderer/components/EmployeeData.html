@@ -1,1 +1,128 @@
-<h1>Employee Data</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Manager</title>
+    <link rel="stylesheet" href="../../styles/style.css">
+</head>
+<body>
+    <div class="container">
+        <a href="./dashboard.html">Back to Dashboard</a>
+        <h1>Dữ liệu nhân viên</h1>
+
+        <div class="sticky-header">
+            <div class="filter-container">
+                <input type="text" id="filter-stt" placeholder="Lọc theo STT">
+                <input type="text" id="filter-name" placeholder="Lọc theo Tên">
+                <!-- <input type="text" id="filter-dob" placeholder="Lọc theo Ngày sinh">
+                <input type="text" id="filter-address" placeholder="Lọc theo Địa chỉ"> -->
+                <input type="text" id="filter-phone" placeholder="Lọc theo Số điện thoại">
+                <!-- <input type="text" id="filter-position" placeholder="Lọc theo Chức vụ">
+                <input type="text" id="filter-department" placeholder="Lọc theo Phòng ban"> -->
+                <input type="text" id="filter-managing-unit" placeholder="Lọc theo Đơn vị chủ quản">
+                <!-- <input type="text" id="filter-start-date" placeholder="Lọc theo Ngày vào làm"> -->
+                <select id="filter-gender">
+                    <option value="">Lọc theo Giới tính</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                </select>
+                <select id="filter-status">
+                    <option value="">Lọc theo Trạng thái</option>
+                    <option value="Đang làm">Đang làm</option>
+                    <option value="Đã nghỉ">Đã nghỉ</option>
+                    <option value="Xa thải">Xa thải</option>
+                </select>
+                <button id="apply-filter">Áp dụng bộ lọc</button>
+                <button id="clear-filter">Xóa bộ lọc</button>
+            </div>
+
+            <div class="button-container">
+                <button id="add-employee-btn">Thêm nhân viên</button>
+                <button id="bulk-edit-btn">Chỉnh sửa hàng loạt</button>
+                <button id="delete-selected-btn">Xóa hàng đã chọn</button>
+                <button id="refresh-btn">Làm mới dữ liệu</button>
+            </div>
+        </div>
+
+        <!-- Modal Overlay -->
+        <div class="modal-overlay" id="modal-overlay"></div>
+
+        <div class="add-employee-form-container" id="add-employee-form-container">
+            <h2>Thêm nhân viên mới</h2>
+            <button class="close-button" id="close-add-employee-form">&times;</button>
+            <form id="add-employee-form">
+                <input type="text" id="new-stt" placeholder="Nhập STT" readonly hidden>
+                <input type="text" id="new-name" placeholder="Nhập Họ và tên">
+                <input type="text" id="new-employee-id" placeholder="Nhập Mã nhân viên">
+                <select id="new-gender">
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                </select>
+                <input type="date" id="new-dob">
+                <input type="text" id="new-phone" placeholder="Nhập Số điện thoại">
+                <input type="text" id="new-email" placeholder="Nhập Email">
+                <input type="text" id="new-bank" placeholder="Nhập Ngân hàng">
+                <input type="text" id="new-account-number" placeholder="Nhập Số tài khoản">
+                <input type="text" id="new-account-holder" placeholder="Nhập Chủ tài khoản">
+                <input type="text" id="new-managing-unit" placeholder="Nhập Đơn vị chủ quản">
+                <select id="new-status">
+                    <option value="Đang làm">Đang làm</option>
+                    <option value="Đã nghỉ">Đã nghỉ</option>
+                    <option value="Xa thải">Xa thải</option>
+                </select>
+                <button type="submit">Thêm nhân viên</button>
+                <button type="button" id="cancel-add-employee">Hủy</button>
+            </form>
+        </div>
+
+        <div class="bulk-edit-form-container" id="bulk-edit-form-container">
+            <h2>Chỉnh sửa nhân viên hàng loạt</h2>
+            <button class="close-button" id="close-bulk-edit-form">&times;</button>
+            <div class="bulk-edit-controls">
+                <label for="bulk-edit-field-select">Chọn trường:</label>
+                <select id="bulk-edit-field-select"></select>
+                <div id="bulk-edit-value-input">
+                    <!-- Dynamic input/select for value will be added here -->
+                </div>
+            </div>
+            <button id="save-bulk-edit-btn">Lưu hàng loạt</button>
+            <button id="cancel-bulk-edit-btn">Hủy</button>
+        </div>
+
+        <table id="employee-table">
+            <thead>
+                <tr>
+                    <th></th>    
+                    <th>STT</th>
+                    <th>Họ và tên</th>
+                    <th>Mã nhân viên</th>
+                    <th>Giới tính</th>
+                    <th>Ngày sinh</th>
+                    <th>Số điện thoại</th>
+                    <th>Email </th>
+                    <th>Ngân hàng </th>
+                    <th>Số tài khoản </th>
+                    <th>Chủ tài khoản</th>
+                    <th>Đơn vị chủ quản</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="custom-context-menu" class="custom-context-menu">
+        <ul>
+            <li id="context-menu-copy">Sao chép</li>
+            <li id="context-menu-edit">Chỉnh sửa</li>
+            <li id="context-menu-delete">Xóa</li>
+        </ul>
+    </div>
+
+    <script src="../app.js"></script>
+</body>
+</html>

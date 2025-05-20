@@ -1,1 +1,79 @@
-<h1>Email Management</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Email Management</title>
+    <link rel="stylesheet" href="../../styles/style.css">
+    <style>
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .template-list {
+            width: 30%;
+            border-right: 1px solid #ccc;
+            padding-right: 20px;
+        }
+        .template-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .template-list li {
+            cursor: pointer;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .template-list li:hover {
+            background-color: #f0f0f0;
+        }
+        .template-content {
+            width: 70%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="template-list">
+                    <a href="./dashboard.html">Back to Dashboard</a>
+
+            <h2>Email Templates</h2>
+            <ul>
+                <li data-template-id="payslip">THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG</li>
+                <!-- Add more templates here -->
+            </ul>
+        </div>
+        <div class="template-content">
+            <h2 id="template-title">Select a Template</h2>
+            <div id="email-template-display"></div>
+        </div>
+    </div>
+
+    <script>
+        const emailTemplates = {
+            payslip: `
+<p>THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG</p>
+<p>Kính gửi anh/chị [Tên],<br>Mã số nhân viên: [Mã số nhân viên]</p>
+<p>Dear Mr./Ms. [Name],<br>Employee ID: [Employee ID]</p>
+<p>Công ty xin gửi đến anh/chị phiếu lương của tháng [Tháng/Năm], đính kèm trong email này.<br>We are pleased to send you your payslip for [Month/Year], attached to this email.</p>
+<p>Vui lòng kiểm tra các thông tin trong phiếu lương. Nếu có bất kỳ thắc mắc hoặc nhầm lẫn nào, anh/chị vui lòng phản hồi email này hoặc liên hệ trực tiếp với Phòng Tài Chính – Kế Toán để được hỗ trợ.<br>Please review the details carefully. If you have any questions or notice any discrepancies, kindly reply to this email or contact the Finance – Accounting Department directly for assistance.</p>
+<p>Trân trọng,<br>Sincerely,</p>
+<p>Phòng Tài Chính – Kế Toán<br>Finance – Accounting Department<br>Ms. Nguyễn Thị Thuỳ Linh – 0388 023 911</p>
+<hr>
+<p>CÔNG TY TNHH TÀI NGUYÊN CÔNG NGHỆ SỐ NECIAM<br>Thành viên CÔNG TY CỔ PHẦN NECIMATECH GROUP NECIAM<br>Digital Technology Resources Co., Ltd.<br>A member of NECIMATECH GROUP JOINT STOCK COMPANY</p>
+            `
+        };
+
+        document.querySelectorAll('.template-list li').forEach(item => {
+            item.addEventListener('click', event => {
+                const templateId = event.target.dataset.templateId;
+                const templateContent = emailTemplates[templateId];
+                const templateTitle = event.target.textContent;
+
+                document.getElementById('template-title').textContent = templateTitle;
+                document.getElementById('email-template-display').innerHTML = templateContent; // Use innerHTML to render HTML formatting
+            });
+        });
+    </script>
+</body>
+</html>

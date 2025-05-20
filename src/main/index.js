@@ -12,7 +12,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile('./src/renderer/components/dashboard.html');
 
   // Open DevTools - Remove for PRODUCTION!
   mainWindow.webContents.openDevTools();
