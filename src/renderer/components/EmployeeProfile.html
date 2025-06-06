@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Profile</title>
+    <link rel="stylesheet" href="../../styles/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .profile-container {
+            display: flex;
+            max-width: 900px; /* Adjust as needed */
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden; /* Contains floated elements */
+        }
+        .left-column {
+            width: 35%; /* Adjust as needed */
+            background-color: #007bff; /* Blue background */
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        .avatar-container {
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            margin-bottom: 15px; /* Add some space below the avatar */
+            /* Ensure a fixed size or min-height if needed to center vertically */
+            height: 160px; /* Match the image height for centering */
+        }
+
+        .left-column img {
+            width: 120px; /* Fixed width for 3:4 aspect ratio */
+            height: 160px; /* Fixed height for 3:4 aspect ratio */
+            border-radius: 0; /* Remove border-radius for rectangular shape */
+            border: 1px solid #ccc; /* Add a border to show the frame */
+            object-fit: cover; /* Ensure the image covers the area without distortion */
+            /* Remove margin-bottom from img, it's on the container now */
+        }
+        .left-column h2 {
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .left-column p {
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        .personal-info {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .personal-info h3 {
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .personal-info p {
+            color: #fff;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .personal-info strong {
+             display: inline-block;
+             width: 100px; /* Adjust label width */
+             margin-right: 5px;
+        }
+
+        .right-column {
+            width: 65%; /* Adjust as needed */
+            padding: 20px;
+        }
+        .right-column h3 {
+            color: #333;
+            border-bottom: 2px solid #007bff; /* Blue underline */
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            margin-top: 20px;
+        }
+         .right-column h3:first-child {
+             margin-top: 0;
+         }
+        .profile-section {
+            margin-bottom: 20px;
+        }
+        .profile-item {
+            margin-bottom: 10px;
+        }
+        .profile-item strong {
+            display: inline-block;
+            width: 150px; /* Adjust as needed for label width */
+        }
+         .back-link {
+             display: block;
+             margin-bottom: 20px;
+         }
+    </style>
+</head>
+<body>
+    <a href="./EmployeeData.html" class="back-link">Back to Employee Data</a>
+
+    <div class="profile-container">
+        <div class="left-column">
+            <!-- Employee Avatar Container -->
+            <div class="avatar-container">
+                <img id="employee-avatar" src="" alt="Employee Avatar" style="display: none;">
+                <!-- Loading indicator or placeholder -->
+                <div id="avatar-loading" style="display: block; text-align: center; padding: 20px;">Loading Avatar...</div>
+                <!-- Optionally add a placeholder image -->
+                <!-- <img id="avatar-placeholder" src="placeholder.png" alt="Placeholder Avatar" style="display: block;"> -->
+            </div>
+            <h2 id="employee-name"></h2>
+            <p id="employee-title"></p>
+
+            <div class="personal-info">
+                <h3>Personal Information</h3>
+                <div id="personal-info-display">
+                    <!-- Personal info will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="right-column">
+             <div id="other-info-display">
+                 <!-- Other info will be displayed here -->
+             </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const desiredHeaders = [
+                "STT",
+                "Họ và tên",
+                "Mã nhân viên",
+                "Giới tính",
+                "Ngày sinh",
+                "Số điện thoại",
+                "Email",
+                "Ngân hàng",
+                "Số tài khoản",
+                "Chủ tài khoản",
+                "Đơn vị chủ quản",
+                "Trạng thái", 
+       
+            ];
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const employeeDataString = urlParams.get('data');
+            const personalInfoDisplayDiv = document.getElementById('personal-info-display');
+            const otherInfoDisplayDiv = document.getElementById('other-info-display');
+            const employeeNameElement = document.getElementById('employee-name');
+            const employeeTitleElement = document.getElementById('employee-title');
+            const employeeAvatarElement = document.getElementById('employee-avatar');
+
+
+            if (employeeDataString) {
+                try {
+                    const employeeData = JSON.parse(decodeURIComponent(employeeDataString));
+
+                    if (employeeNameElement) {
+                         // Assuming "Họ và tên" is at index 1
+                        employeeNameElement.textContent = employeeData[1] !== undefined ? employeeData[1] : 'N/A';
+                    }
+                     if (employeeTitleElement) {
+
+                         employeeTitleElement.textContent = employeeData[2] !== undefined ? employeeData[2] : ''; // Using Don vi chu quan as placeholder
+                     }
+
+                    // Add new field for data at index 10
+                    const employeeField10Element = document.createElement('p');
+                    employeeField10Element.textContent = employeeData[10] !== undefined ? `Đơn vị chủ quản: ${employeeData[10]}` : '';
+                    if (employeeTitleElement && employeeTitleElement.parentNode) {
+                        employeeTitleElement.parentNode.insertBefore(employeeField10Element, employeeTitleElement.nextSibling);
+                    }
+
+
+                    const avatarLoadingElement = document.getElementById('avatar-loading');
+                    // const avatarPlaceholderElement = document.getElementById('avatar-placeholder'); // If using a placeholder image
+
+                    if (employeeAvatarElement && employeeData.length > 0) {
+                        const avatarUrl = employeeData[employeeData.length - 1]; // Get the last item
+                        if (avatarUrl && typeof avatarUrl === 'string') {
+                            // Show loading indicator/placeholder
+                            if (avatarLoadingElement) avatarLoadingElement.style.display = 'block';
+                            // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'block';
+                            employeeAvatarElement.style.display = 'none'; // Hide the img tag initially
+
+                            // Send a request to the main process to download the image
+                            window.electronAPI.downloadAvatar(avatarUrl).then((localPath) => {
+                                // Hide loading indicator/placeholder
+                                if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
+                                // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
+
+                                if (localPath) {
+                                    employeeAvatarElement.src = localPath;
+                                    employeeAvatarElement.style.display = 'block'; // Show the img tag
+                                } else {
+                                    console.error('Failed to download avatar for URL:', avatarUrl);
+                                    // Optionally set a default avatar or handle the error visually
+                                    // e.g., employeeAvatarElement.src = 'default-avatar.png';
+                                    employeeAvatarElement.style.display = 'block'; // Show img tag even with broken src or default
+                                }
+                            }).catch((error) => {
+                                console.error('Error sending download request:', error);
+                                // Hide loading indicator/placeholder
+                                if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
+                                // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
+                                // Optionally set a default avatar or handle the error visually
+                                // e.g., employeeAvatarElement.src = 'default-avatar.png';
+                                employeeAvatarElement.style.display = 'block'; // Show img tag even with broken src or default
+                            });
+                        } else {
+                             console.warn('Avatar URL is not a valid string:', avatarUrl);
+                             // Hide loading indicator/placeholder if it was shown
+                             if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
+                             // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
+                             // Optionally set a default avatar or handle the error visually
+                             // e.g., employeeAvatarElement.src = 'default-avatar.png';
+                             employeeAvatarElement.style.display = 'block'; // Show img tag even with broken src or default
+                        }
+                    } else {
+                         // No avatar URL or employee data, hide loading and show default/nothing
+                         if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
+                         // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
+                         employeeAvatarElement.style.display = 'none'; // Hide img tag if no data
+                    }
+
+
+                    if (personalInfoDisplayDiv && otherInfoDisplayDiv) {
+                        personalInfoDisplayDiv.innerHTML = ''; // Clear existing content
+                        otherInfoDisplayDiv.innerHTML = ''; // Clear existing content
+
+
+                        // Map data to sections based on desiredHeaders
+                        desiredHeaders.forEach((header, index) => {
+                            const value = employeeData[index] !== undefined ? employeeData[index] : 'N/A';
+                            const p = document.createElement('p');
+                            p.classList.add('profile-item');
+                            p.innerHTML = `<strong>${header}:</strong> ${value}`;
+
+                            // Decide which column to put the data in
+                            if (["Giới tính", "Ngày sinh", "Số điện thoại", "Email"].includes(header)) {
+                                personalInfoDisplayDiv.appendChild(p);
+                            } else if (!["STT", "Họ và tên"].includes(header)) { // Exclude STT and Họ và tên from this section
+                                otherInfoDisplayDiv.appendChild(p);
+                            }
+                        });
+                    }
+
+                } catch (error) {
+                    console.error('Error parsing employee data:', error);
+                    if (personalInfoDisplayDiv) {
+                        personalInfoDisplayDiv.innerHTML = '<p>Error loading employee data.</p>';
+                    }
+                     if (otherInfoDisplayDiv) {
+                        otherInfoDisplayDiv.innerHTML = ''; // Clear other section on error
+                    }
+                }
+            } else {
+                if (personalInfoDisplayDiv) {
+                    personalInfoDisplayDiv.innerHTML = '<p>No employee data provided.</p>';
+                }
+                 if (otherInfoDisplayDiv) {
+                    otherInfoDisplayDiv.innerHTML = ''; // Clear other section
+                }
+            }
+        });
+
+        // Google Drive Integration
+        const mainGoogleDriveFolderId = '1aIM6kJIkZuiZr9Z2sccWv4XESwqaj0sx'; // Replace with your actual folder ID
+
+        async function loadEmployeeFiles(employeeData) {
+            const employeeCode = employeeData[2]; // Assuming "Mã nhân viên" is at index 2
+            const employeeName = employeeData[1]; // Assuming "Họ và tên" is at index 1
+            const employeeFolderName = `${employeeCode} - ${employeeName}`;
+
+            const otherInfoDisplayDiv = document.getElementById('other-info-display');
+            if (!otherInfoDisplayDiv) return;
+
+            otherInfoDisplayDiv.innerHTML = '<h3>Google Drive Files</h3><p>Loading files...</p>';
+
+            try {
+                const employeeFolder = await window.electronAPI.findEmployeeFolder(mainGoogleDriveFolderId, employeeFolderName);
+
+                if (employeeFolder) {
+                    const files = await window.electronAPI.listEmployeeFiles(employeeFolder.id);
+                    displayFiles(files, otherInfoDisplayDiv);
+                } else {
+                    otherInfoDisplayDiv.innerHTML = '<h3>Google Drive Files</h3><p>Employee folder not found in Google Drive.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading employee files from Google Drive:', error);
+                otherInfoDisplayDiv.innerHTML = '<h3>Google Drive Files</h3><p>Error loading files.</p>';
+            }
+        }
+
+        function displayFiles(files, containerElement) {
+            containerElement.innerHTML = '<h3>Google Drive Files</h3>';
+            if (files && files.length > 0) {
+                const fileList = document.createElement('ul');
+                files.forEach(file => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = file.name;
+                    if (file.mimeType !== 'application/vnd.google-apps.folder') {
+                        listItem.style.cursor = 'pointer';
+                        listItem.style.textDecoration = 'underline';
+                        listItem.onclick = () => downloadFile(file.id, file.name);
+                    }
+                    fileList.appendChild(listItem);
+                });
+                containerElement.appendChild(fileList);
+            } else {
+                containerElement.innerHTML += '<p>No files found in employee folder.</p>';
+            }
+        }
+
+        async function downloadFile(fileId, fileName) {
+            try {
+                // The actual download handling needs to be implemented in the main process
+                // and potentially involve saving the file to a local directory and
+                // then opening it or providing a link to the local file.
+                // For now, we'll just call the IPC handler and log the result.
+                const result = await window.electronAPI.downloadFile(fileId);
+                console.log(`Download initiated for ${fileName}:`, result);
+                alert(`Download initiated for ${fileName}. Check console for details.`); // Provide user feedback
+            } catch (error) {
+                console.error('Error initiating file download:', error);
+                alert(`Error downloading ${fileName}.`); // Provide user feedback
+            }
+        }
+
+        // Call loadEmployeeFiles when employee data is available
+        if (employeeDataString) {
+             try {
+                 const employeeData = JSON.parse(decodeURIComponent(employeeDataString));
+                 // ... (existing code to display employee profile data) ...
+                 loadEmployeeFiles(employeeData); // Call the new function
+             } catch (error) {
+                 console.error('Error parsing employee data for file loading:', error);
+             }
+        }
+
+    </script>
+</body>
+</html>

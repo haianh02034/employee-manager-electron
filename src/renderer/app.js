@@ -15,7 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const spreadsheetId = '1SfX6tY1mP0iMBJyI18QVoOs-ILhpBSdgocq3EbNa8fI';
-  const range = 'Sheet1!A1:Z1000'; // Adjust the range as needed
+  const range = 'Sheet1!A1:AZ1000'; // Adjusted range to include more columns
+
+  let appData = {}; // Global variable to hold application data
 
   // DOM Elements
   const appDiv = document.getElementById('app');
@@ -51,258 +53,188 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 
+  // Function to display data in the table
+  async function displayData(dataToDisplay) {
+    if (employeeTableBody) {
+      employeeTableBody.innerHTML = ''; // Clear existing content
 
-  async function displayData() {
-    try {
-      const data = await window.readData(spreadsheetId, range);
+      if (dataToDisplay && dataToDisplay.length > 0) {
+        // Assuming the table header is already in index.html
+        // Create table rows
+        for (let i = 0; i < dataToDisplay.length; i++) { // Iterate through all data rows
+          const rowData = dataToDisplay[i];
+          const row = document.createElement('tr');
 
-      if (employeeTableBody) {
-        employeeTableBody.innerHTML = ''; // Clear existing content
+          // Add checkbox
+          const checkboxCell = document.createElement('td');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.dataset.rowIndex = i; // Use 0-based index for internal logic
+          checkboxCell.appendChild(checkbox);
+          row.appendChild(checkboxCell);
 
-        if (data && data.length > 0) {
-          // Assuming the table header is already in index.html
-          // Create table rows
-          for (let i = 1; i < data.length; i++) { // Iterate through all data rows
-            const rowData = data[i];
-            const row = document.createElement('tr');
-
-            // Add checkbox
-            const checkboxCell = document.createElement('td');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.dataset.rowIndex = i;
-            checkboxCell.appendChild(checkbox);
-            row.appendChild(checkboxCell);
-
-            // Create cells based on desiredHeaders and map data
-            desiredHeaders.forEach((header, index) => {
+          // Create cells based on desiredHeaders and map data
+          desiredHeaders.forEach((header, index) => {
               const cell = document.createElement('td');
               // Assuming data columns in the sheet match the order of desiredHeaders
               cell.textContent = rowData[index] !== undefined ? rowData[index] : ''; // Use data based on index
               row.appendChild(cell);
-            });
+          });
 
-            employeeTableBody.appendChild(row);
-          }
+          employeeTableBody.appendChild(row);
+        }
+      } else {
+        // If no data, clear the tbody and potentially add a message
+        // employeeTableBody.textContent = 'No data found in the sheet.';
+      }
+    }
+  }
+
+  // Function to load initial data from offline store or Google Sheets
+  async function loadInitialData() {
+    try {
+      // Try to load from offline store first
+      const offlineData = await window.electronAPI.getOfflineData('employeeData');
+      if (offlineData && offlineData.length > 0) {
+        appData.employeeData = offlineData;
+        console.log('Loaded data from offline store.');
+        displayData(appData.employeeData);
+      } else {
+        console.log('No offline data found, attempting to fetch from Google Sheets.');
+        // If no offline data, try to fetch from Google Sheets
+        const sheetData = await window.electronAPI.readData(spreadsheetId, range);
+        if (sheetData && sheetData.length > 1) { // Assuming first row is header
+          appData.employeeData = sheetData.slice(1); // Store data rows, excluding header
+          await window.electronAPI.setOfflineData('employeeData', appData.employeeData);
+          console.log('Fetched data from Google Sheets and saved to offline store.');
+          displayData(appData.employeeData);
         } else {
-          // If no data, clear the tbody and potentially add a message
-          // employeeTableBody.textContent = 'No data found in the sheet.'; // This might not be ideal for a tbody
+          appData.employeeData = [];
+          displayData([]);
+          console.log('No data found in Google Sheets.');
         }
       }
     } catch (error) {
-      console.error('Error fetching or displaying data:', error);
-      // Error handling for the tbody might be different than for appDiv
+      console.error('Error loading initial data:', error);
+      // Fallback to empty data if both fail
+      appData.employeeData = [];
+      displayData([]);
+      alert('Lỗi khi tải dữ liệu. Kiểm tra console để biết chi tiết.');
+    }
+  }
+
+  // Function to save data to offline store and potentially synchronize
+  async function saveAndSynchronizeData() {
+    try {
+      await window.electronAPI.setOfflineData('employeeData', appData.employeeData);
+      console.log('Data saved to offline store.');
+
+      // Synchronization with Google Sheets
+      if (navigator.onLine) {
+        console.log('Online: Attempting to synchronize with Google Sheets...');
+        try {
+          const sheetData = await window.readData(spreadsheetId, range);
+          const sheetDataRows = sheetData ? sheetData.slice(1) : []; // Exclude header row
+
+          if (appData.employeeData.length > sheetDataRows.length) {
+            // Local data has more rows, overwrite the sheet
+            console.log('Local data has more rows, overwriting Google Sheet.');
+            await window.electronAPI.clearSheetData(spreadsheetId, range);
+            // Add header row to the data before writing
+            const dataToWrite = [desiredHeaders, ...appData.employeeData];
+            await window.electronAPI.writeSheetData(spreadsheetId, range, dataToWrite);
+            console.log('Google Sheet overwritten with local data.');
+          } else {
+            // Check if there are any local modifications
+            // This is a simplified check; a more robust solution would track changes
+            let hasModifications = false;
+            if (appData.employeeData.length === sheetDataRows.length) {
+              for (let i = 0; i < appData.employeeData.length; i++) {
+                if (JSON.stringify(appData.employeeData[i]) !== JSON.stringify(sheetDataRows[i])) {
+                  hasModifications = true;
+                  break;
+                }
+              }
+            } else {
+              hasModifications = true; // Different number of rows, consider it modified
+            }
+
+            if (hasModifications) {
+              console.log('Local data has modifications, overwriting Google Sheet.');
+              await window.electronAPI.clearSheetData(spreadsheetId, range);
+              // Add header row to the data before writing
+              const dataToWrite = [desiredHeaders, ...appData.employeeData];
+              await window.electronAPI.writeSheetData(spreadsheetId, range, dataToWrite);
+              console.log('Google Sheet overwritten with local data.');
+            } else {
+              console.log('No local modifications, Google Sheet is up to date.');
+            }
+          }
+        } catch (syncError) {
+          console.error('Error during Google Sheets synchronization:', syncError);
+        }
+      } else {
+        console.log('Offline: Data saved locally, synchronization deferred.');
+      }
+    } catch (error) {
+      console.error('Error saving data to offline store:', error);
     }
   }
 
   // Filtering function
   function filterTable() {
-    const table = document.getElementById('employee-table');
-    if (!table) return;
-
-    const rows = table.querySelectorAll('tbody tr');
+    if (!appData.employeeData) return;
 
     // Get filter values from specific inputs and selects
     const filterStt = document.getElementById('filter-stt').value.toLowerCase();
     const filterName = document.getElementById('filter-name').value.toLowerCase();
+    const filterEmployeeId = document.getElementById('filter-employee-id').value.toLowerCase();
     const filterPhone = document.getElementById('filter-phone').value.toLowerCase();
     const filterManagingUnit = document.getElementById('filter-managing-unit').value.toLowerCase();
-    const filterGender = document.getElementById('filter-gender').value.toLowerCase(); // Get value from select
-    const filterStatus = document.getElementById('filter-status').value.toLowerCase(); // Get value from select
+    const filterGender = document.getElementById('filter-gender').value.toLowerCase();
+    const filterStatus = document.getElementById('filter-status').value.toLowerCase();
 
-    rows.forEach(row => {
+    const filteredData = appData.employeeData.filter(rowData => {
       let match = true;
-      const cells = row.querySelectorAll('td');
 
-      // Check against specific columns (adjust indices based on desiredHeaders and checkbox column)
-      // STT (Column 0 in desiredHeaders, index 1 in table cells due to checkbox)
-      if (filterStt && !cells[1].textContent.toLowerCase().includes(filterStt)) {
+      // Check against specific columns (indices match desiredHeaders)
+      // STT (Column 0)
+      if (filterStt && !String(rowData[0]).toLowerCase().includes(filterStt)) {
         match = false;
       }
-      // Họ và tên (Column 1 in desiredHeaders, index 2 in table cells)
-      if (match && filterName && !cells[2].textContent.toLowerCase().includes(filterName)) {
+      // Họ và tên (Column 1)
+      if (match && filterName && !String(rowData[1]).toLowerCase().includes(filterName)) {
         match = false;
       }
-      // Số điện thoại (Column 5 in desiredHeaders, index 6 in table cells)
-      if (match && filterPhone && !cells[6].textContent.toLowerCase().includes(filterPhone)) {
+      // Mã nhân viên (Column 2)
+      if (match && filterEmployeeId && !String(rowData[2]).toLowerCase().includes(filterEmployeeId)) {
         match = false;
       }
-      // Đơn vị chủ quản (Column 10 in desiredHeaders, index 11 in table cells)
-      if (match && filterManagingUnit && !cells[11].textContent.toLowerCase().includes(filterManagingUnit)) {
+      // Số điện thoại (Column 5)
+      if (match && filterPhone && !String(rowData[5]).toLowerCase().includes(filterPhone)) {
         match = false;
       }
-      // Giới tính (Column 3 in desiredHeaders, index 4 in table cells)
-      if (match && filterGender && !cells[4].textContent.toLowerCase().includes(filterGender)) {
+      // Đơn vị chủ quản (Column 10)
+      if (match && filterManagingUnit && !String(rowData[10]).toLowerCase().includes(filterManagingUnit)) {
+        match = false;
+      }
+      // Giới tính (Column 3)
+      if (match && filterGender && !String(rowData[3]).toLowerCase().includes(filterGender)) {
           match = false;
       }
-      // Trạng thái (Column 11 in desiredHeaders, index 12 in table cells)
-      if (match && filterStatus && !cells[12].textContent.toLowerCase().includes(filterStatus)) {
+      // Trạng thái (Column 11)
+      if (match && filterStatus && !String(rowData[11]).toLowerCase().includes(filterStatus)) {
         match = false;
       }
 
-      row.style.display = match ? '' : 'none';
+      return match;
     });
+
+    displayData(filteredData); // Display the filtered data
   }
 
   // Helper function to show the add employee modal
   function showAddEmployeeModal() {
-    if (modalOverlay) modalOverlay.style.display = 'block';
-    if (addEmployeeFormContainer) addEmployeeFormContainer.style.display = 'block';
-  }
-
-  // Helper function to hide the add employee modal
-  function hideAddEmployeeModal() {
-    if (modalOverlay) modalOverlay.style.display = 'none';
-    if (addEmployeeFormContainer) addEmployeeFormContainer.style.display = 'none';
-    if (addEmployeeForm) {
-      addEmployeeForm.reset();
-      addEmployeeForm.removeAttribute('data-editing-row-index');
-    }
-  }
-
-
-  // Event Listeners
-  if (addEmployeeBtn) {
-    addEmployeeBtn.addEventListener('click', () => {
-      if (addEmployeeFormTitle) addEmployeeFormTitle.textContent = 'Thêm nhân viên mới';
-      if (addEmployeeFormSubmitButton) addEmployeeFormSubmitButton.textContent = 'Thêm nhân viên';
-      if (addEmployeeForm) {
-        addEmployeeForm.removeAttribute('data-editing-row-index');
-        addEmployeeForm.reset();
-      }
-      showAddEmployeeModal();
-    });
-  }
-
-  if (cancelAddEmployeeButton) {
-    cancelAddEmployeeButton.addEventListener('click', () => {
-      hideAddEmployeeModal();
-    });
-  }
-
-  if (closeAddEmployeeFormButton) {
-    closeAddEmployeeFormButton.addEventListener('click', () => {
-      hideAddEmployeeModal();
-    });
-  }
-
-  const deleteSelectedBtn = document.getElementById('delete-selected-btn');
-  if (deleteSelectedBtn) {
-    deleteSelectedBtn.addEventListener('click', async () => {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-      const selectedRowIndices = [];
-
-      checkboxes.forEach(checkbox => {
-        if (checkbox.dataset.rowIndex) {
-          selectedRowIndices.push(parseInt(checkbox.dataset.rowIndex));
-        }
-      });
-
-      if (selectedRowIndices.length === 0) {
-        alert('Vui lòng chọn ít nhất một hàng để xóa.');
-        return;
-      }
-
-      if (confirm(`Bạn có chắc chắn muốn xóa ${selectedRowIndices.length} hàng đã chọn không?`)) {
-        try {
-          // Sort indices in descending order to avoid issues with shifting rows
-          selectedRowIndices.sort((a, b) => b - a);
-
-          for (const rowIndex of selectedRowIndices) {
-            // rowIndex is 1-based from Google Sheet data (skipping header)
-            // window.deleteData expects 1-based sheet row number
-            await window.deleteData(spreadsheetId, rowIndex + 1);
-          }
-
-          alert('Các hàng đã chọn đã được xóa thành công!');
-          displayData(); // Refresh data display
-
-        } catch (error) {
-          console.error('Error deleting selected rows:', error);
-          alert('Lỗi khi xóa các hàng đã chọn. Kiểm tra console để biết chi tiết.');
-        }
-      }
-    });
-  }
-
-  if (addEmployeeForm) {
-    addEmployeeForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      const editingRowIndex = addEmployeeForm.dataset.editingRowIndex;
-
-      try {
-        // Collect data from the form - ensure these match the desiredHeaders order
-        const stt = document.getElementById('new-stt').value;
-        const hoTen = document.getElementById('new-name').value;
-        const maNhanVien = document.getElementById('new-employee-id').value; // Assuming an input with this ID exists
-        const gioiTinh = document.getElementById('new-gender').value; // Assuming an input with this ID exists
-        const ngaySinhValue = document.getElementById('new-dob').value;
-        const soDienThoai = document.getElementById('new-phone').value;
-        const email = document.getElementById('new-email').value; // Assuming an input with this ID exists
-        const nganHang = document.getElementById('new-bank').value; // Assuming an input with this ID exists
-        const soTaiKhoan = document.getElementById('new-account-number').value; // Assuming an input with this ID exists
-        const chuTaiKhoan = document.getElementById('new-account-holder').value; // Assuming an input with this ID exists
-        const donViChuQuan = document.getElementById('new-managing-unit').value; // Assuming an input with this ID exists
-        const trangThai = document.getElementById('new-status').value;
-
-        // Basic email validation
-        if (email && (!email.includes('@') || !email.includes('.'))) {
-          alert('Vui lòng nhập địa chỉ email hợp lệ.');
-          return; // Stop the form submission
-        }
-
-        const ngaySinhFormatted = formatDateToDDMMYYYY(ngaySinhValue);
-
-        const values = [[
-          stt,
-          hoTen,
-          maNhanVien,
-          gioiTinh,
-          ngaySinhFormatted,
-          soDienThoai,
-          email,
-          nganHang,
-          soTaiKhoan,
-          chuTaiKhoan,
-          donViChuQuan,
-          trangThai
-        ]];
-
-        if (editingRowIndex !== undefined) {
-          const rowNumber = parseInt(editingRowIndex) + 1;
-          const rangeToUpdate = `Sheet1!A${rowNumber}`;
-          await window.updateData(spreadsheetId, rangeToUpdate, values);
-          alert('Dữ liệu đã được cập nhật thành công!');
-          hideAddEmployeeModal(); // Hide modal and reset form after successful update
-        } else {
-          const existingData = await window.readData(spreadsheetId, range);
-          let nextStt = 1;
-          if (existingData && existingData.length > 1) {
-            const lastRow = existingData[existingData.length - 1];
-            const lastStt = parseInt(lastRow[0]);
-            if (!isNaN(lastStt)) {
-              nextStt = lastStt + 1;
-            }
-          }
-          values[0][0] = nextStt;
-
-          await window.writeData(spreadsheetId, range, values);
-          alert('Dữ liệu đã được lưu thành công!');
-          hideAddEmployeeModal(); // Hide modal and reset form after successful save
-        }
-
-        displayData(); // Refresh data display after save or update
-
-      } catch (error) {
-        console.error('Error saving data:', error);
-        alert('Lỗi khi lưu dữ liệu. Kiểm tra console để biết chi tiết.');
-      }
-    });
-  }
-
-  // Helper function to show the bulk edit modal
-  function showBulkEditModal() {
     if (modalOverlay) modalOverlay.style.display = 'block';
     const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
     if (bulkEditFormContainer) bulkEditFormContainer.style.display = 'block';
@@ -431,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const selectedRowIndices = JSON.parse(bulkEditFormContainer.dataset.selectedRowIndices || '[]');
 
       if (selectedRowIndices.length === 0) {
-        alert('Không có hàng nào được chọn để chỉnh sửa.');
+        alert('Vui lòng chọn ít nhất một hàng để chỉnh sửa hàng loạt.');
         return;
       }
 
@@ -457,19 +389,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (confirm(`Bạn có chắc chắn muốn cập nhật trường "${desiredHeaders[columnIndexToUpdate]}" thành "${newValue}" cho ${selectedRowIndices.length} hàng đã chọn không?`)) {
         try {
-          for (const rowIndex of selectedRowIndices) {
-            // rowIndex is 1-based from Google Sheet data (skipping header)
-            // window.updateData expects 1-based sheet row number and 0-based column index (A=0, B=1, etc.)
-            // The range should be like Sheet1!A1, Sheet1!B1, etc.
-            const sheetRowNumber = rowIndex + 1; // Convert 1-based data index to 1-based sheet index
-            const sheetColumnLetter = String.fromCharCode(65 + columnIndexToUpdate); // Convert 0-based column index to letter
-            const rangeToUpdate = `Sheet1!${sheetColumnLetter}${sheetRowNumber}`;
-            await window.updateData(spreadsheetId, rangeToUpdate, [[newValue]]);
-          }
+          // Update appData
+          selectedRowIndices.forEach(rowIndex => {
+            if (appData.employeeData[rowIndex]) {
+              appData.employeeData[rowIndex][columnIndexToUpdate] = newValue;
+            }
+          });
+          await saveAndSynchronizeData(); // Save to offline and attempt sync
 
           alert('Dữ liệu đã được cập nhật hàng loạt thành công!');
           hideBulkEditModal();
-          displayData(); // Refresh data display
+          displayData(appData.employeeData); // Refresh data display
 
         } catch (error) {
           console.error('Error saving bulk edit data:', error);
@@ -502,10 +432,21 @@ document.addEventListener('DOMContentLoaded', () => {
     employeeTableBody.addEventListener('contextmenu', (event) => {
       event.preventDefault();
 
+      event.preventDefault();
+
       let clickedRow = event.target.closest('tr');
       if (!clickedRow) return;
 
-      if (customContextMenu) {
+      const checkedCheckboxes = employeeTableBody.querySelectorAll('input[type="checkbox"]:checked');
+      const contextMenuViewProfile = document.getElementById('context-menu-view-profile');
+
+      if (customContextMenu && contextMenuViewProfile) {
+        if (checkedCheckboxes.length > 1) {
+          contextMenuViewProfile.style.display = 'none'; // Hide "View Profile" if more than one is checked
+        } else {
+          contextMenuViewProfile.style.display = 'list-item'; // Show "View Profile" otherwise
+        }
+
         customContextMenu.dataset.rowIndex = clickedRow.rowIndex; // Set to 0-based row index
         customContextMenu.style.display = 'block';
 
@@ -645,21 +586,43 @@ document.addEventListener('DOMContentLoaded', () => {
       if (confirm(`Bạn có chắc chắn muốn xóa ${selectedRowIndices.length} hàng đã chọn không?`)) {
         try {
           // Sort indices in descending order to avoid issues with shifting rows
-          selectedRowIndices.sort((a, b) => b - a);
-
-          for (const rowIndex of selectedRowIndices) {
-            // rowIndex is 1-based from Google Sheet data (skipping header)
-            // window.deleteData expects 1-based sheet row number
-            await window.deleteData(spreadsheetId, rowIndex + 1);
-          }
+          selectedRowIndices.forEach(index => {
+            appData.employeeData.splice(index, 1);
+          });
+          await saveAndSynchronizeData(); // Save to offline and attempt sync
 
           alert('Các hàng đã chọn đã được xóa thành công!');
-          displayData(); // Refresh data display
+          displayData(appData.employeeData); // Refresh data display
 
         } catch (error) {
           console.error('Error deleting selected rows:', error);
           alert('Lỗi khi xóa các hàng đã chọn. Kiểm tra console để biết chi tiết.');
         }
+      }
+      hideContextMenu();
+    });
+  }
+
+  const contextMenuViewProfile = document.getElementById('context-menu-view-profile');
+
+  if (contextMenuViewProfile) {
+    contextMenuViewProfile.addEventListener('click', async () => {
+      console.log('View Profile clicked');
+      const checkedCheckboxes = employeeTableBody.querySelectorAll('input[type="checkbox"]:checked');
+
+      if (checkedCheckboxes.length === 1) {
+        const checkedRowIndex = parseInt(checkedCheckboxes[0].dataset.rowIndex);
+        const rowData = appData.employeeData[checkedRowIndex]; // Get data from appData
+
+        if (rowData && rowData.length > 0) {
+          // Construct URL with query parameters using the full row data
+          const profileUrl = `./EmployeeProfile.html?data=${encodeURIComponent(JSON.stringify(rowData))}`;
+          window.location.href = profileUrl;
+        } else {
+          alert('Không thể lấy dữ liệu cho hàng đã chọn.');
+        }
+      } else {
+        alert('Vui lòng chọn chính xác một hàng để xem profile.');
       }
       hideContextMenu();
     });
@@ -690,12 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
       filterInputs.forEach(input => input.value = '');
       const filterSelects = document.querySelectorAll('.filter-container select');
       filterSelects.forEach(select => select.value = ''); // Reset select values
-      filterTable(); // Apply filter after clearing to show all data
+      displayData(appData.employeeData); // Display all data after clearing filters
     });
   }
 
   // Initial data display
-  displayData();
+  loadInitialData(); // Call the new function to load data
 
   // Set initial sticky header position
   setStickyHeaderPosition();
