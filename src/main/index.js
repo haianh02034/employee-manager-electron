@@ -102,6 +102,17 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('list-folders-in-folder', async (event, folderId) => {
+    try {
+        const { listFoldersInFolder } = require('../utils/google-sheets');
+        const folders = await listFoldersInFolder(folderId);
+        return folders;
+    } catch (error) {
+        console.error('Error in list-folders-in-folder IPC handler:', error);
+        throw error;
+    }
+  });
+
   // IPC handlers for Google Sheets data manipulation
   ipcMain.handle('clear-sheet-data', async (event, { spreadsheetId, range }) => {
       try {

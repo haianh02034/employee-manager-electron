@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded event listener executed');
   const desiredHeaders = [
     "STT",
     "Họ và tên",
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to load initial data from offline store or Google Sheets
   async function loadInitialData() {
     try {
+      console.log('Inside try block in loadInitialData');
       // Try to load from offline store first
       const offlineData = await window.electronAPI.getOfflineData('employeeData');
       if (offlineData && offlineData.length > 0) {
@@ -617,6 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rowData && rowData.length > 0) {
           // Construct URL with query parameters using the full row data
           const profileUrl = `./EmployeeProfile.html?data=${encodeURIComponent(JSON.stringify(rowData))}`;
+          console.log("Navigating to profile URL:", profileUrl);
           window.location.href = profileUrl;
         } else {
           alert('Không thể lấy dữ liệu cho hàng đã chọn.');

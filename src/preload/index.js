@@ -1,3 +1,4 @@
+console.log('preload/index.js loaded');
 const { ipcRenderer } = require('electron');
 
 window.electronAPI = {
@@ -11,5 +12,6 @@ window.electronAPI = {
     setAllOfflineData: (newData) => ipcRenderer.invoke('set-all-offline-data', newData),
     clearSheetData: (spreadsheetId, range) => ipcRenderer.invoke('clear-sheet-data', { spreadsheetId, range }),
     writeSheetData: (spreadsheetId, range, values) => ipcRenderer.invoke('write-sheet-data', { spreadsheetId, range, values }),
-    readData: (spreadsheetId, range) => ipcRenderer.invoke('read-data', { spreadsheetId, range })
+    readData: (spreadsheetId, range) => ipcRenderer.invoke('read-data', { spreadsheetId, range }),
+    listFoldersInFolder: (folderId) => ipcRenderer.invoke('list-folders-in-folder', folderId)
 };

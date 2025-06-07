@@ -255,6 +255,8 @@
                             }
                         });
                     }
+                    // Call loadEmployeeFiles here, after employeeData is parsed and available
+                    loadEmployeeFiles(employeeData);
 
                 } catch (error) {
                     console.error('Error parsing employee data:', error);
@@ -280,8 +282,16 @@
 
         async function loadEmployeeFiles(employeeData) {
             const employeeCode = employeeData[2]; // Assuming "Mã nhân viên" is at index 2
-            const employeeName = employeeData[1]; // Assuming "Họ và tên" is at index 1
+            let employeeName = employeeData[1]; // Assuming "Họ và tên" is at index 1
+            // Normalize employeeName: replace multiple spaces with single space and trim
+            employeeName = employeeName.replace(/\s+/g, ' ').trim();
             const employeeFolderName = `${employeeCode} - ${employeeName}`;
+
+            console.log('Debugging Google Drive Folder Search:');
+            console.log('mainGoogleDriveFolderId:', mainGoogleDriveFolderId);
+            console.log('employeeCode:', employeeCode);
+            console.log('Normalized employeeName:', employeeName);
+            console.log('Constructed employeeFolderName:', employeeFolderName);
 
             const otherInfoDisplayDiv = document.getElementById('other-info-display');
             if (!otherInfoDisplayDiv) return;
@@ -292,8 +302,10 @@
                 const employeeFolder = await window.electronAPI.findEmployeeFolder(mainGoogleDriveFolderId, employeeFolderName);
 
                 if (employeeFolder) {
-                    const files = await window.electronAPI.listEmployeeFiles(employeeFolder.id);
-                    displayFiles(files, otherInfoDisplayDiv);
+                    // Store the initial employee folder ID for navigation
+                    currentFolderId = employeeFolder.id;
+                    folderHistory = [{ id: employeeFolder.id, name: employeeFolderName }];
+                    await loadFolderContents(employeeFolder.id, employeeFolderName);
                 } else {
                     otherInfoDisplayDiv.innerHTML = '<h3>Google Drive Files</h3><p>Employee folder not found in Google Drive.</p>';
                 }
@@ -303,52 +315,155 @@
             }
         }
 
-        function displayFiles(files, containerElement) {
-            containerElement.innerHTML = '<h3>Google Drive Files</h3>';
-            if (files && files.length > 0) {
-                const fileList = document.createElement('ul');
-                files.forEach(file => {
+        let currentFolderId = null;
+        let folderHistory = []; // To keep track of navigation for breadcrumbs/back button
+
+        async function loadFolderContents(folderId, folderName) {
+            const otherInfoDisplayDiv = document.getElementById('other-info-display');
+            if (!otherInfoDisplayDiv) return;
+
+            otherInfoDisplayDiv.innerHTML = `<h3>Google Drive Files: ${folderName}</h3><p>Loading contents...</p>`;
+
+            try {
+                const items = await window.electronAPI.listEmployeeFiles(folderId); // This returns both files and folders
+                displayItems(items, otherInfoDisplayDiv);
+            } catch (error) {
+                console.error(`Error loading contents for folder '${folderName}' (ID: ${folderId}):`, error);
+                otherInfoDisplayDiv.innerHTML = `<h3>Google Drive Files: ${folderName}</h3><p>Error loading contents for this folder. Please check permissions or if the folder still exists.</p>`;
+            }
+        }
+
+        function displayItems(items, containerElement) {
+            containerElement.innerHTML = ''; // Clear previous content
+
+            // Add breadcrumbs
+            const breadcrumbsDiv = document.createElement('div');
+            breadcrumbsDiv.classList.add('breadcrumbs');
+            folderHistory.forEach((folder, index) => {
+                const span = document.createElement('span');
+                span.textContent = folder.name;
+                if (index < folderHistory.length - 1) {
+                    span.classList.add('clickable-breadcrumb');
+                    span.onclick = () => navigateToFolder(folder.id, index);
+                    breadcrumbsDiv.appendChild(span);
+                    breadcrumbsDiv.appendChild(document.createTextNode(' > '));
+                } else {
+                    breadcrumbsDiv.appendChild(span);
+                }
+            });
+            containerElement.appendChild(breadcrumbsDiv);
+
+            // Add back button if not at the root of employee folder
+            if (folderHistory.length > 1) {
+                const backButton = document.createElement('button');
+                backButton.textContent = 'Back';
+                backButton.onclick = navigateBack;
+                containerElement.appendChild(backButton);
+            }
+
+            containerElement.innerHTML += '<h3>Contents:</h3>';
+
+            if (items && items.length > 0) {
+                // Sort items from A-Z (ascending)
+                items.sort((a, b) => a.name.localeCompare(b.name));
+
+                const itemList = document.createElement('ul');
+                items.forEach(item => {
                     const listItem = document.createElement('li');
-                    listItem.textContent = file.name;
-                    if (file.mimeType !== 'application/vnd.google-apps.folder') {
+                    listItem.textContent = item.name;
+
+                    if (item.mimeType === 'application/vnd.google-apps.folder') {
+                        listItem.classList.add('folder-item');
                         listItem.style.cursor = 'pointer';
                         listItem.style.textDecoration = 'underline';
-                        listItem.onclick = () => downloadFile(file.id, file.name);
+                        listItem.onclick = () => enterFolder(item.id, item.name);
+                    } else {
+                        listItem.classList.add('file-item');
+                        listItem.style.cursor = 'pointer';
+                        listItem.style.textDecoration = 'underline';
+                        listItem.onclick = () => downloadFile(item.id, item.name);
                     }
-                    fileList.appendChild(listItem);
+                    itemList.appendChild(listItem);
                 });
-                containerElement.appendChild(fileList);
+                containerElement.appendChild(itemList);
             } else {
-                containerElement.innerHTML += '<p>No files found in employee folder.</p>';
+                containerElement.innerHTML += '<p>No items found in this folder.</p>';
+            }
+        }
+
+        async function enterFolder(folderId, folderName) {
+            console.log('Entering folder:', folderName, 'ID:', folderId);
+            currentFolderId = folderId;
+            folderHistory.push({ id: folderId, name: folderName });
+            console.log('folderHistory after enter:', folderHistory);
+            await loadFolderContents(folderId, folderName);
+        }
+
+        async function navigateToFolder(folderId, index) {
+            console.log('Navigating to folder:', folderHistory[index].name, 'ID:', folderId, 'at index:', index);
+            currentFolderId = folderId;
+            folderHistory = folderHistory.slice(0, index + 1);
+            console.log('folderHistory after navigateTo:', folderHistory);
+            await loadFolderContents(folderId, folderHistory[index].name);
+        }
+
+        async function navigateBack() {
+            console.log('Attempting to navigate back. Current folderHistory:', folderHistory);
+            if (folderHistory.length > 1) {
+                folderHistory.pop(); // Remove current folder
+                const previousFolder = folderHistory[folderHistory.length - 1];
+                currentFolderId = previousFolder.id;
+                console.log('Navigating back to:', previousFolder.name, 'ID:', previousFolder.id);
+                console.log('folderHistory after back:', folderHistory);
+                await loadFolderContents(previousFolder.id, previousFolder.name);
+            } else {
+                console.log('Cannot navigate back, already at the root employee folder.');
             }
         }
 
         async function downloadFile(fileId, fileName) {
             try {
-                // The actual download handling needs to be implemented in the main process
-                // and potentially involve saving the file to a local directory and
-                // then opening it or providing a link to the local file.
-                // For now, we'll just call the IPC handler and log the result.
                 const result = await window.electronAPI.downloadFile(fileId);
                 console.log(`Download initiated for ${fileName}:`, result);
-                alert(`Download initiated for ${fileName}. Check console for details.`); // Provide user feedback
+                alert(`Download initiated for ${fileName}. Check console for details.`);
             } catch (error) {
                 console.error('Error initiating file download:', error);
-                alert(`Error downloading ${fileName}.`); // Provide user feedback
+                alert(`Error downloading ${fileName}.`);
             }
         }
 
-        // Call loadEmployeeFiles when employee data is available
-        if (employeeDataString) {
-             try {
-                 const employeeData = JSON.parse(decodeURIComponent(employeeDataString));
-                 // ... (existing code to display employee profile data) ...
-                 loadEmployeeFiles(employeeData); // Call the new function
-             } catch (error) {
-                 console.error('Error parsing employee data for file loading:', error);
-             }
-        }
-
     </script>
+    <style>
+        .breadcrumbs {
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .clickable-breadcrumb {
+            cursor: pointer;
+            text-decoration: underline;
+            color: #007bff;
+        }
+        .folder-item {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .file-item {
+            color: #333;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </body>
 </html>

@@ -26,6 +26,7 @@ async function getGoogleSheetsClient() {
 
 // Function to get Google Drive client
 async function getGoogleDriveClient() {
+    console.log('getGoogleDriveClient called'); // Add log
     const auth = new google.auth.GoogleAuth({
         keyFile: './gg-sheets-api-441108-f48f9f374902.json',
         scopes: [
@@ -33,9 +34,15 @@ async function getGoogleDriveClient() {
             'https://www.googleapis.com/auth/drive.readonly' // Added Drive read-only scope
         ]
     });
-    const client = await auth.getClient();
-    const googleDrive = google.drive({ version: 'v3', auth: client });
-    return googleDrive;
+    try {
+        const client = await auth.getClient();
+        console.log('Google Drive client authenticated successfully'); // Log success
+        const googleDrive = google.drive({ version: 'v3', auth: client });
+        return googleDrive;
+    } catch (error) {
+        console.error('Error authenticating Google Drive client:', error); // Log error
+        throw error;
+    }
 }
 
 // Function to find a folder by name within a parent folder
@@ -46,6 +53,9 @@ async function findFolderByName(parentFolderId, folderName) {
             q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
             fields: 'files(id, name)',
             spaces: 'drive',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true, // Added for shared drives
+            corpora: 'allDrives', // Added for shared drives
         });
         return res.data.files.length > 0 ? res.data.files[0] : null;
     } catch (error) {
@@ -62,6 +72,9 @@ async function listFilesInFolder(folderId) {
             q: `'${folderId}' in parents and trashed=false`,
             fields: 'files(id, name, mimeType, size)',
             spaces: 'drive',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true, // Added for shared drives
+            corpora: 'allDrives', // Added for shared drives
         });
         return res.data.files;
     } catch (error) {
@@ -149,8 +162,30 @@ module.exports = {
     generateDownloadLink,
     clearSheetData, // Export the new function
     writeSheetData, // Export the new function
-    readData
+    readData,
+    listFoldersInFolder
 };
+
+async function listFoldersInFolder(folderId) {
+    console.log('listFoldersInFolder called with folderId:', folderId); // Add log
+    const drive = await getGoogleDriveClient();
+    try {
+        console.log('Listing folders in folder ID:', folderId); // Log the folder ID
+        const res = await drive.files.list({
+            q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id, name)',
+            spaces: 'drive',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true, // Added for shared drives
+            corpora: 'allDrives', // Added for shared drives
+        });
+        console.log('API response:', res.data); // Log the entire API response
+        return res.data.files;
+    } catch (error) {
+        console.error('Error listing folders in folder:', error);
+        throw error;
+    }
+}
 
 async function readData(spreadsheetId, range) {
     const googleSheets = await getGoogleSheetsClient();
