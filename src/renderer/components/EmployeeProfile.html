@@ -361,7 +361,9 @@
                 containerElement.appendChild(backButton);
             }
 
-            containerElement.innerHTML += '<h3>Contents:</h3>';
+            const contentsHeader = document.createElement('h3');
+            contentsHeader.textContent = 'Contents:';
+            containerElement.appendChild(contentsHeader);
 
             if (items && items.length > 0) {
                 // Sort items from A-Z (ascending)
@@ -387,7 +389,9 @@
                 });
                 containerElement.appendChild(itemList);
             } else {
-                containerElement.innerHTML += '<p>No items found in this folder.</p>';
+                const noItemsParagraph = document.createElement('p');
+                noItemsParagraph.textContent = 'No items found in this folder.';
+                containerElement.appendChild(noItemsParagraph);
             }
         }
 
@@ -408,16 +412,33 @@
         }
 
         async function navigateBack() {
-            console.log('Attempting to navigate back. Current folderHistory:', folderHistory);
+            console.log('DEBUG: navigateBack called.');
+            console.log('DEBUG: Current folderHistory before pop:', JSON.stringify(folderHistory));
             if (folderHistory.length > 1) {
                 folderHistory.pop(); // Remove current folder
                 const previousFolder = folderHistory[folderHistory.length - 1];
                 currentFolderId = previousFolder.id;
-                console.log('Navigating back to:', previousFolder.name, 'ID:', previousFolder.id);
-                console.log('folderHistory after back:', folderHistory);
+                console.log('DEBUG: Navigating back to:', previousFolder.name, 'ID:', previousFolder.id);
+                console.log('DEBUG: folderHistory after pop:', JSON.stringify(folderHistory));
                 await loadFolderContents(previousFolder.id, previousFolder.name);
             } else {
-                console.log('Cannot navigate back, already at the root employee folder.');
+                console.log('DEBUG: Cannot navigate back, already at the root employee folder. folderHistory length:', folderHistory.length);
+            }
+        }
+
+        async function loadFolderContents(folderId, folderName) {
+            console.log('DEBUG: loadFolderContents called for folder:', folderName, 'ID:', folderId);
+            const otherInfoDisplayDiv = document.getElementById('other-info-display');
+            if (!otherInfoDisplayDiv) return;
+
+            otherInfoDisplayDiv.innerHTML = `<h3>Google Drive Files: ${folderName}</h3><p>Loading contents...</p>`;
+
+            try {
+                const items = await window.electronAPI.listEmployeeFiles(folderId); // This returns both files and folders
+                displayItems(items, otherInfoDisplayDiv);
+            } catch (error) {
+                console.error(`Error loading contents for folder '${folderName}' (ID: ${folderId}):`, error);
+                otherInfoDisplayDiv.innerHTML = `<h3>Google Drive Files: ${folderName}</h3><p>Error loading contents for this folder. Please check permissions or if the folder still exists.</p>`;
             }
         }
 
