@@ -359,7 +359,7 @@
             }
         });
 
-        sendSelectedEmployeesBtn.addEventListener('click', () => {
+        sendSelectedEmployeesBtn.addEventListener('click', async () => { // Mark as async
             const selectedEmployees = [];
             document.querySelectorAll('.employee-checkbox:checked').forEach(checkbox => {
                 selectedEmployees.push({
@@ -377,10 +377,72 @@
             const confirmationMessage = `Are you sure you want to send "${template.name}" to ${selectedEmployees.length} selected employees?`;
 
             if (confirm(confirmationMessage)) {
-                // Here you would implement the actual email sending logic
-                // This might involve another IPC call to the main process
-                // to trigger an email sending service (e.g., via Nodemailer, API)
-                alert(`Email "${template.name}" sent to:\n${selectedEmployees.map(e => e.name).join('\n')}`);
+                let successfulSends = 0;
+                let failedSends = 0;
+                const sendPromises = selectedEmployees.map(async (selectedEmployee) => {
+                    // Find the full employee data from allOfflineData.employeeData
+                    const allOfflineData = await window.electronAPI.getAllOfflineData();
+                    const employeesData = allOfflineData.employeeData || [];
+                    const fullEmployeeData = employeesData.find(emp => emp[2] === selectedEmployee.id); // Match by Employee ID
+
+                    if (!fullEmployeeData) {
+                        console.error(`Employee data not found for ID: ${selectedEmployee.id}`);
+                        failedSends++;
+                        return;
+                    }
+
+                    const employeeName = fullEmployeeData[1]; // Họ và tên
+                    const employeeId = fullEmployeeData[2]; // Mã số nhân viên
+                    const recipientEmail = fullEmployeeData[6]; // Email
+
+                    if (!recipientEmail) {
+                        console.error(`Email address not found for employee: ${employeeName} (${employeeId})`);
+                        failedSends++;
+                        return;
+                    }
+
+                    // Get current month and year for [Tháng/Năm]
+                    const currentDate = new Date();
+                    const currentMonth = currentDate.getMonth() + 1; // Month is 0-indexed
+                    const currentYear = currentDate.getFullYear();
+                    const monthYearPlaceholder = `${currentMonth}/${currentYear}`;
+
+                    // Personalize the email content
+                    let personalizedContent = template.content;
+                    personalizedContent = personalizedContent.replace(/\[Họ Và Tên\]/g, fullEmployeeData[1] || '');
+                    personalizedContent = personalizedContent.replace(/\[Mã số nhân viên\]/g, fullEmployeeData[2] || '');
+                    personalizedContent = personalizedContent.replace(/\[Giới tính\]/g, fullEmployeeData[3] || '');
+                    personalizedContent = personalizedContent.replace(/\[Ngày sinh\]/g, fullEmployeeData[4] || '');
+                    personalizedContent = personalizedContent.replace(/\[Số điện thoại\]/g, fullEmployeeData[5] || '');
+                    personalizedContent = personalizedContent.replace(/\[Email\]/g, fullEmployeeData[6] || '');
+                    personalizedContent = personalizedContent.replace(/\[Ngân hàng\]/g, fullEmployeeData[7] || '');
+                    personalizedContent = personalizedContent.replace(/\[Số tài khoản\]/g, fullEmployeeData[8] || '');
+                    personalizedContent = personalizedContent.replace(/\[Chủ tài khoản\]/g, fullEmployeeData[9] || '');
+                    personalizedContent = personalizedContent.replace(/\[Đơn vị chủ quản\]/g, fullEmployeeData[10] || '');
+                    personalizedContent = personalizedContent.replace(/\[Trạng thái\]/g, fullEmployeeData[11] || '');
+                    personalizedContent = personalizedContent.replace(/\[Tháng\/Năm\]/g, monthYearPlaceholder);
+
+                    let subject = template.name;
+                   
+
+                    try {
+                        const result = await window.electronAPI.sendEmail(recipientEmail, subject, personalizedContent);
+                        if (result.success) {
+                            successfulSends++;
+                            console.log(`Email sent to ${employeeName} (${recipientEmail}): ${result.messageId}`);
+                        } else {
+                            failedSends++;
+                            console.error(`Failed to send email to ${employeeName} (${recipientEmail}): ${result.error}`);
+                        }
+                    } catch (error) {
+                        failedSends++;
+                        console.error(`Error sending email to ${employeeName} (${recipientEmail}):`, error);
+                    }
+                });
+
+                await Promise.all(sendPromises); // Wait for all emails to attempt sending
+
+                alert(`Email sending complete!\nSuccessful: ${successfulSends}\nFailed: ${failedSends}`);
                 employeeSelectionModal.style.display = 'none'; // Hide modal
             }
         });

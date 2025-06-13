@@ -52,29 +52,67 @@
         <div class="add-employee-form-container" id="add-employee-form-container">
             <h2>Thêm nhân viên mới</h2>
             <button class="close-button" id="close-add-employee-form">&times;</button>
-            <form id="add-employee-form">
-                <input type="text" id="new-stt" placeholder="Nhập STT" readonly hidden>
-                <input type="text" id="new-name" placeholder="Nhập Họ và tên">
-                <input type="text" id="new-employee-id" placeholder="Nhập Mã nhân viên">
-                <select id="new-gender">
-                    <option value="Nam">Nam</option>
-                    <option value="Nữ">Nữ</option>
-                    <option value="Khác">Khác</option>
-                </select>
-                <input type="date" id="new-dob">
-                <input type="text" id="new-phone" placeholder="Nhập Số điện thoại">
-                <input type="text" id="new-email" placeholder="Nhập Email">
-                <input type="text" id="new-bank" placeholder="Nhập Ngân hàng">
-                <input type="text" id="new-account-number" placeholder="Nhập Số tài khoản">
-                <input type="text" id="new-account-holder" placeholder="Nhập Chủ tài khoản">
-                <input type="text" id="new-managing-unit" placeholder="Nhập Đơn vị chủ quản">
-                <select id="new-status">
-                    <option value="Đang làm">Đang làm</option>
-                    <option value="Đã nghỉ">Đã nghỉ</option>
-                    <option value="Xa thải">Xa thải</option>
-                </select>
-                <button type="submit">Thêm nhân viên</button>
-                <button type="button" id="cancel-add-employee">Hủy</button>
+            <form id="add-employee-form" class="employee-form">
+                <div class="form-group" hidden>
+                    <label for="new-stt">STT:</label>
+                    <input type="text" id="new-stt" placeholder="Nhập STT" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="new-name">Họ và tên:</label>
+                    <input type="text" id="new-name" placeholder="Nhập Họ và tên">
+                </div>
+                <div class="form-group">
+                    <label for="new-employee-id">Mã nhân viên:</label>
+                    <input type="text" id="new-employee-id" placeholder="Nhập Mã nhân viên">
+                </div>
+                <div class="form-group">
+                    <label for="new-gender">Giới tính:</label>
+                    <select id="new-gender">
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="new-dob">Ngày sinh:</label>
+                    <input type="date" id="new-dob">
+                </div>
+                <div class="form-group">
+                    <label for="new-phone">Số điện thoại:</label>
+                    <input type="text" id="new-phone" placeholder="Nhập Số điện thoại">
+                </div>
+                <div class="form-group">
+                    <label for="new-email">Email:</label>
+                    <input type="text" id="new-email" placeholder="Nhập Email">
+                </div>
+                <div class="form-group">
+                    <label for="new-bank">Ngân hàng:</label>
+                    <input type="text" id="new-bank" placeholder="Nhập Ngân hàng">
+                </div>
+                <div class="form-group">
+                    <label for="new-account-number">Số tài khoản:</label>
+                    <input type="text" id="new-account-number" placeholder="Nhập Số tài khoản">
+                </div>
+                <div class="form-group">
+                    <label for="new-account-holder">Chủ tài khoản:</label>
+                    <input type="text" id="new-account-holder" placeholder="Nhập Chủ tài khoản">
+                </div>
+                <div class="form-group">
+                    <label for="new-managing-unit">Đơn vị chủ quản:</label>
+                    <input type="text" id="new-managing-unit" placeholder="Nhập Đơn vị chủ quản">
+                </div>
+                <div class="form-group">
+                    <label for="new-status">Trạng thái:</label>
+                    <select id="new-status">
+                        <option value="Đang làm">Đang làm</option>
+                        <option value="Đã nghỉ">Đã nghỉ</option>
+                        <option value="Xa thải">Xa thải</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit">Thêm nhân viên</button>
+                    <button type="button" id="cancel-add-employee">Hủy</button>
+                </div>
             </form>
         </div>
 

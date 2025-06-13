@@ -5,6 +5,7 @@ const axios = require('axios'); // Assuming axios is installed
 const { findFolderByName, listFilesInFolder, generateDownloadLink, clearSheetData, writeSheetData, uploadFileToDrive } = require('../utils/google-sheets'); // Import Google Drive and Sheets functions
 const DataStore = require('./data-store'); // Import the DataStore module
 const { dialog } = require('electron'); // Import dialog for file selection
+const nodemailer = require('nodemailer'); // Import nodemailer
 
 // Use a path relative to the application's root directory
 const avatarsDir = path.join(__dirname, '..', '..', 'avatars');
@@ -162,6 +163,34 @@ app.whenReady().then(() => {
       return null;
     } else {
       return filePaths[0];
+    }
+  });
+
+  // Nodemailer transporter setup
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // Use TLS
+    auth: {
+      user: 'haianh29112003@gmail.com',
+      pass: 'wdfckwreguxtykyp',
+    },
+  });
+
+  // IPC handler for sending email
+  ipcMain.handle('send-email', async (event, { to, subject, html }) => {
+    try {
+      const info = await transporter.sendMail({
+        from: '"No Reply" <haianh29112003@gmail.com>', // Sender address
+        to: to, // List of receivers
+        subject: subject, // Subject line
+        html: html, // html body
+      });
+      console.log('Message sent: %s', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return { success: false, error: error.message };
     }
   });
 

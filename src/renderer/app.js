@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded event listener executed');
   const desiredHeaders = [
     "STT",
     "Họ và tên",
@@ -94,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to load initial data from offline store or Google Sheets
   async function loadInitialData() {
     try {
-      console.log('Inside try block in loadInitialData');
       // Try to load from offline store first
       const offlineData = await window.electronAPI.getOfflineData('employeeData');
       if (offlineData && offlineData.length > 0) {
@@ -135,41 +133,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navigator.onLine) {
         console.log('Online: Attempting to synchronize with Google Sheets...');
         try {
-          const sheetData = await window.readData(spreadsheetId, range);
-          const sheetDataRows = sheetData ? sheetData.slice(1) : []; // Exclude header row
-
-          if (appData.employeeData.length > sheetDataRows.length) {
-            // Local data has more rows, overwrite the sheet
-            console.log('Local data has more rows, overwriting Google Sheet.');
+          // Always overwrite the sheet with local data if appData.employeeData is not empty
+          if (appData.employeeData && appData.employeeData.length > 0) {
+            console.log('Overwriting Google Sheet with local data.');
             await window.electronAPI.clearSheetData(spreadsheetId, range);
-            // Add header row to the data before writing
             const dataToWrite = [desiredHeaders, ...appData.employeeData];
             await window.electronAPI.writeSheetData(spreadsheetId, range, dataToWrite);
             console.log('Google Sheet overwritten with local data.');
           } else {
-            // Check if there are any local modifications
-            // This is a simplified check; a more robust solution would track changes
-            let hasModifications = false;
-            if (appData.employeeData.length === sheetDataRows.length) {
-              for (let i = 0; i < appData.employeeData.length; i++) {
-                if (JSON.stringify(appData.employeeData[i]) !== JSON.stringify(sheetDataRows[i])) {
-                  hasModifications = true;
-                  break;
-                }
-              }
-            } else {
-              hasModifications = true; // Different number of rows, consider it modified
-            }
-
-            if (hasModifications) {
-              console.log('Local data has modifications, overwriting Google Sheet.');
-              await window.electronAPI.clearSheetData(spreadsheetId, range);
-              // Add header row to the data before writing
-              const dataToWrite = [desiredHeaders, ...appData.employeeData];
-              await window.electronAPI.writeSheetData(spreadsheetId, range, dataToWrite);
-              console.log('Google Sheet overwritten with local data.');
-            } else {
-              console.log('No local modifications, Google Sheet is up to date.');
+            console.log('Local data is empty, no data to write to Google Sheet.');
+            // Optionally, clear the sheet if local data is empty and sheet has data
+            const sheetData = await window.electronAPI.readData(spreadsheetId, range);
+            if (sheetData && sheetData.length > 1) {
+                console.log('Local data is empty, but sheet has data. Clearing sheet.');
+                await window.electronAPI.clearSheetData(spreadsheetId, range);
             }
           }
         } catch (syncError) {
@@ -238,8 +215,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Helper function to show the add employee modal
   function showAddEmployeeModal() {
     if (modalOverlay) modalOverlay.style.display = 'block';
-    const bulkEditFormContainer = document.getElementById('bulk-edit-form-container');
-    if (bulkEditFormContainer) bulkEditFormContainer.style.display = 'block';
+    if (addEmployeeFormContainer) addEmployeeFormContainer.style.display = 'block';
+  }
+
+  // Helper function to hide the add employee modal
+  function hideAddEmployeeModal() {
+    if (modalOverlay) modalOverlay.style.display = 'none';
+    if (addEmployeeFormContainer) addEmployeeFormContainer.style.display = 'none';
+    addEmployeeForm.reset(); // Clear form fields
+    addEmployeeForm.removeAttribute('data-editing-row-index'); // Clear editing state
+    if (addEmployeeFormTitle) addEmployeeFormTitle.textContent = 'Thêm nhân viên mới';
+    if (addEmployeeFormSubmitButton) addEmployeeFormSubmitButton.textContent = 'Thêm nhân viên';
   }
 
   // Helper function to show the bulk edit modal
@@ -425,6 +411,84 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Event listeners for Add/Edit Employee Form
+  if (addEmployeeBtn) {
+    addEmployeeBtn.addEventListener('click', () => {
+      hideContextMenu(); // Hide context menu if open
+      showAddEmployeeModal();
+    });
+  }
+
+  if (cancelAddEmployeeButton) {
+    cancelAddEmployeeButton.addEventListener('click', () => {
+      hideAddEmployeeModal();
+    });
+  }
+
+  if (closeAddEmployeeFormButton) {
+    closeAddEmployeeFormButton.addEventListener('click', () => {
+      hideAddEmployeeModal();
+    });
+  }
+
+  if (addEmployeeForm) {
+    addEmployeeForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const isEditing = addEmployeeForm.hasAttribute('data-editing-row-index');
+      const rowIndex = isEditing ? parseInt(addEmployeeForm.dataset.editingRowIndex) : -1;
+
+      let newSttValue;
+      if (isEditing) {
+        // When editing, use the existing STT from the form (which was populated from the row)
+        newSttValue = document.getElementById('new-stt').value;
+      } else {
+        // When adding a new employee, auto-increment STT
+        const currentStts = appData.employeeData.map(row => parseInt(row[0])).filter(stt => !isNaN(stt));
+        const maxStt = currentStts.length > 0 ? Math.max(...currentStts) : 0;
+        newSttValue = (maxStt + 1).toString();
+      }
+
+      const newEmployeeData = [
+        newSttValue,
+        document.getElementById('new-name').value,
+        document.getElementById('new-employee-id').value,
+        document.getElementById('new-gender').value,
+        formatDateToDDMMYYYY(document.getElementById('new-dob').value),
+        document.getElementById('new-phone').value,
+        document.getElementById('new-email').value,
+        document.getElementById('new-bank').value,
+        document.getElementById('new-account-number').value,
+        document.getElementById('new-account-holder').value,
+        document.getElementById('new-managing-unit').value,
+        document.getElementById('new-status').value
+      ];
+
+      if (isEditing) {
+        // Update existing employee
+        if (appData.employeeData[rowIndex]) {
+          appData.employeeData[rowIndex] = newEmployeeData;
+          alert('Thông tin nhân viên đã được cập nhật thành công!');
+        } else {
+          alert('Lỗi: Không tìm thấy hàng để chỉnh sửa.');
+        }
+      } else {
+        // Add new employee
+        appData.employeeData.push(newEmployeeData);
+        alert('Nhân viên mới đã được thêm thành công!');
+      }
+
+      try {
+        await saveAndSynchronizeData(); // Save to offline and attempt sync
+        displayData(appData.employeeData); // Refresh data display
+        hideAddEmployeeModal(); // Hide modal and clear form
+      } catch (error) {
+        console.error('Error saving employee data:', error);
+        alert('Lỗi khi lưu dữ liệu nhân viên. Kiểm tra console để biết chi tiết.');
+      }
+    });
+  }
+
   // Custom Context Menu
   function hideContextMenu() {
     if (customContextMenu) customContextMenu.style.display = 'none';
@@ -588,6 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (confirm(`Bạn có chắc chắn muốn xóa ${selectedRowIndices.length} hàng đã chọn không?`)) {
         try {
           // Sort indices in descending order to avoid issues with shifting rows
+          selectedRowIndices.sort((a, b) => b - a); // Add this line
           selectedRowIndices.forEach(index => {
             appData.employeeData.splice(index, 1);
           });
@@ -619,7 +684,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rowData && rowData.length > 0) {
           // Construct URL with query parameters using the full row data
           const profileUrl = `./EmployeeProfile.html?data=${encodeURIComponent(JSON.stringify(rowData))}`;
-          console.log("Navigating to profile URL:", profileUrl);
           window.location.href = profileUrl;
         } else {
           alert('Không thể lấy dữ liệu cho hàng đã chọn.');

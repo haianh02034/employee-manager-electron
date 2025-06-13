@@ -17,5 +17,6 @@ window.electronAPI = {
     loadEmailTemplates: () => ipcRenderer.invoke('load-email-templates'),
     saveEmailTemplates: (templates) => ipcRenderer.invoke('save-email-templates', templates),
     uploadFileToDrive: (filePath, fileName, mimeType, folderId) => ipcRenderer.invoke('upload-file-to-drive', { filePath, fileName, mimeType, folderId }),
-    openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options)
+    openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
+    sendEmail: (to, subject, html) => ipcRenderer.invoke('send-email', { to, subject, html })
 };

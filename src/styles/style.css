@@ -167,20 +167,46 @@ h1, h2 {
     text-align: center;
 }
 
-.add-employee-form input,
-.add-employee-form select {
-    display: block;
-    width: 100%; /* Full width */
-    margin-bottom: 15px; /* Increased margin */
-    padding: 12px; /* Increased padding */
+/* Employee Form Styling */
+.employee-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    gap: 15px 20px; /* Gap between rows and columns */
+}
+
+.employee-form .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.employee-form label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.employee-form input[type="text"],
+.employee-form input[type="date"],
+.employee-form input[type="email"],
+.employee-form select {
+    width: 100%;
+    padding: 10px;
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 1rem;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
 
-.add-employee-form button {
+.employee-form .form-buttons {
+    grid-column: 1 / -1; /* Span across both columns */
+    display: flex;
+    justify-content: flex-end; /* Align buttons to the right */
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.employee-form button {
     padding: 10px 20px;
-    margin-right: 10px;
     cursor: pointer;
     border: none;
     border-radius: 4px;
