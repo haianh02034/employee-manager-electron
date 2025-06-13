@@ -114,8 +114,6 @@
                 <img id="employee-avatar" src="" alt="Employee Avatar" style="display: none;">
                 <!-- Loading indicator or placeholder -->
                 <div id="avatar-loading" style="display: block; text-align: center; padding: 20px;">Loading Avatar...</div>
-                <!-- Optionally add a placeholder image -->
-                <!-- <img id="avatar-placeholder" src="placeholder.png" alt="Placeholder Avatar" style="display: block;"> -->
             </div>
             <h2 id="employee-name"></h2>
             <p id="employee-title"></p>
@@ -184,45 +182,37 @@
 
 
                     const avatarLoadingElement = document.getElementById('avatar-loading');
-                    // const avatarPlaceholderElement = document.getElementById('avatar-placeholder'); // If using a placeholder image
 
                     if (employeeAvatarElement && employeeData.length > 0) {
                         const avatarUrl = employeeData[employeeData.length - 1]; // Get the last item
                         if (avatarUrl && typeof avatarUrl === 'string') {
                             // Show loading indicator/placeholder
                             if (avatarLoadingElement) avatarLoadingElement.style.display = 'block';
-                            // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'block';
                             employeeAvatarElement.style.display = 'none'; // Hide the img tag initially
 
                             // Send a request to the main process to download the image
                             window.electronAPI.downloadAvatar(avatarUrl).then((localPath) => {
                                 // Hide loading indicator/placeholder
                                 if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
-                                // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
 
                                 if (localPath) {
                                     employeeAvatarElement.src = localPath;
                                     employeeAvatarElement.style.display = 'block'; // Show the img tag
                                 } else {
-                                    console.error('Failed to download avatar for URL:', avatarUrl);
                                     // Optionally set a default avatar or handle the error visually
                                     // e.g., employeeAvatarElement.src = 'default-avatar.png';
                                     employeeAvatarElement.style.display = 'block'; // Show img tag even with broken src or default
                                 }
                             }).catch((error) => {
-                                console.error('Error sending download request:', error);
                                 // Hide loading indicator/placeholder
                                 if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
-                                // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
                                 // Optionally set a default avatar or handle the error visually
                                 // e.g., employeeAvatarElement.src = 'default-avatar.png';
                                 employeeAvatarElement.style.display = 'block'; // Show img tag even with broken src or default
                             });
                         } else {
-                             console.warn('Avatar URL is not a valid string:', avatarUrl);
                              // Hide loading indicator/placeholder if it was shown
                              if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
-                             // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
                              // Optionally set a default avatar or handle the error visually
                              // e.g., employeeAvatarElement.src = 'default-avatar.png';
                              employeeAvatarElement.style.display = 'block'; // Show img tag even with broken src or default
@@ -230,7 +220,6 @@
                     } else {
                          // No avatar URL or employee data, hide loading and show default/nothing
                          if (avatarLoadingElement) avatarLoadingElement.style.display = 'none';
-                         // if (avatarPlaceholderElement) avatarPlaceholderElement.style.display = 'none';
                          employeeAvatarElement.style.display = 'none'; // Hide img tag if no data
                     }
 
@@ -259,7 +248,6 @@
                     loadEmployeeFiles(employeeData);
 
                 } catch (error) {
-                    console.error('Error parsing employee data:', error);
                     if (personalInfoDisplayDiv) {
                         personalInfoDisplayDiv.innerHTML = '<p>Error loading employee data.</p>';
                     }
@@ -287,11 +275,6 @@
             employeeName = employeeName.replace(/\s+/g, ' ').trim();
             const employeeFolderName = `${employeeCode} - ${employeeName}`;
 
-            console.log('Debugging Google Drive Folder Search:');
-            console.log('mainGoogleDriveFolderId:', mainGoogleDriveFolderId);
-            console.log('employeeCode:', employeeCode);
-            console.log('Normalized employeeName:', employeeName);
-            console.log('Constructed employeeFolderName:', employeeFolderName);
 
             const otherInfoDisplayDiv = document.getElementById('other-info-display');
             if (!otherInfoDisplayDiv) return;
@@ -310,7 +293,6 @@
                     otherInfoDisplayDiv.innerHTML = '<h3>Google Drive Files</h3><p>Employee folder not found in Google Drive.</p>';
                 }
             } catch (error) {
-                console.error('Error loading employee files from Google Drive:', error);
                 otherInfoDisplayDiv.innerHTML = '<h3>Google Drive Files</h3><p>Error loading files.</p>';
             }
         }
@@ -328,7 +310,6 @@
                 const items = await window.electronAPI.listEmployeeFiles(folderId); // This returns both files and folders
                 displayItems(items, otherInfoDisplayDiv);
             } catch (error) {
-                console.error(`Error loading contents for folder '${folderName}' (ID: ${folderId}):`, error);
                 otherInfoDisplayDiv.innerHTML = `<h3>Google Drive Files: ${folderName}</h3><p>Error loading contents for this folder. Please check permissions or if the folder still exists.</p>`;
             }
         }
@@ -396,38 +377,28 @@
         }
 
         async function enterFolder(folderId, folderName) {
-            console.log('Entering folder:', folderName, 'ID:', folderId);
             currentFolderId = folderId;
             folderHistory.push({ id: folderId, name: folderName });
-            console.log('folderHistory after enter:', folderHistory);
             await loadFolderContents(folderId, folderName);
         }
 
         async function navigateToFolder(folderId, index) {
-            console.log('Navigating to folder:', folderHistory[index].name, 'ID:', folderId, 'at index:', index);
             currentFolderId = folderId;
             folderHistory = folderHistory.slice(0, index + 1);
-            console.log('folderHistory after navigateTo:', folderHistory);
             await loadFolderContents(folderId, folderHistory[index].name);
         }
 
         async function navigateBack() {
-            console.log('DEBUG: navigateBack called.');
-            console.log('DEBUG: Current folderHistory before pop:', JSON.stringify(folderHistory));
             if (folderHistory.length > 1) {
                 folderHistory.pop(); // Remove current folder
                 const previousFolder = folderHistory[folderHistory.length - 1];
                 currentFolderId = previousFolder.id;
-                console.log('DEBUG: Navigating back to:', previousFolder.name, 'ID:', previousFolder.id);
-                console.log('DEBUG: folderHistory after pop:', JSON.stringify(folderHistory));
                 await loadFolderContents(previousFolder.id, previousFolder.name);
             } else {
-                console.log('DEBUG: Cannot navigate back, already at the root employee folder. folderHistory length:', folderHistory.length);
             }
         }
 
         async function loadFolderContents(folderId, folderName) {
-            console.log('DEBUG: loadFolderContents called for folder:', folderName, 'ID:', folderId);
             const otherInfoDisplayDiv = document.getElementById('other-info-display');
             if (!otherInfoDisplayDiv) return;
 
@@ -437,7 +408,6 @@
                 const items = await window.electronAPI.listEmployeeFiles(folderId); // This returns both files and folders
                 displayItems(items, otherInfoDisplayDiv);
             } catch (error) {
-                console.error(`Error loading contents for folder '${folderName}' (ID: ${folderId}):`, error);
                 otherInfoDisplayDiv.innerHTML = `<h3>Google Drive Files: ${folderName}</h3><p>Error loading contents for this folder. Please check permissions or if the folder still exists.</p>`;
             }
         }
@@ -445,11 +415,7 @@
         async function downloadFile(fileId, fileName) {
             try {
                 const result = await window.electronAPI.downloadFile(fileId);
-                console.log(`Download initiated for ${fileName}:`, result);
-                alert(`Download initiated for ${fileName}. Check console for details.`);
             } catch (error) {
-                console.error('Error initiating file download:', error);
-                alert(`Error downloading ${fileName}.`);
             }
         }
 

@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>Email Management</title>
     <link rel="stylesheet" href="../../styles/style.css">
+    <!-- Quill CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <style>
         .container {
             display: flex;
@@ -29,6 +33,10 @@
         .template-content {
             width: 70%;
         }
+        #email-template-display {
+     
+            min-height: 100px; /* Ensure it has some height */
+        }
     </style>
 </head>
 <body>
@@ -38,20 +46,38 @@
                     <a href="./dashboard.html">Back to Dashboard</a>
 
             <h2>Email Templates</h2>
-            <ul>
+            <button id="create-template-btn">Create New Template</button>
+            <ul id="template-list-ul">
                 <li data-template-id="payslip">THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG</li>
-                <!-- Add more templates here -->
+                <!-- Dynamically added templates will go here -->
             </ul>
         </div>
         <div class="template-content">
             <h2 id="template-title">Select a Template</h2>
             <div id="email-template-display"></div>
+
+            <div id="template-editor" style="display: none;">
+                <h3>Template Editor</h3>
+                <label for="template-name">Template Name:</label>
+                <input type="text" id="template-name" style="width: 100%; margin-bottom: 10px;"><br>
+                <label for="template-editor-content">Template Content (HTML):</label>
+                <div id="template-editor-content" style="height: 300px;"></div><br>
+                <button id="save-template-btn">Save Template</button>
+                <button id="cancel-edit-btn">Cancel</button>
+            </div>
+
+            <div id="template-actions" style="display: none;">
+                <button id="edit-template-btn">Edit Template</button>
+                <button id="delete-template-btn">Delete Template</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const emailTemplates = {
-            payslip: `
+        let emailTemplates = {
+            payslip: {
+                name: "THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG",
+                content: `
 <p>THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG</p>
 <p>Kính gửi anh/chị [Tên],<br>Mã số nhân viên: [Mã số nhân viên]</p>
 <p>Dear Mr./Ms. [Name],<br>Employee ID: [Employee ID]</p>
@@ -61,19 +87,167 @@
 <p>Phòng Tài Chính – Kế Toán<br>Finance – Accounting Department<br>Ms. Nguyễn Thị Thuỳ Linh – 0388 023 911</p>
 <hr>
 <p>CÔNG TY TNHH TÀI NGUYÊN CÔNG NGHỆ SỐ NECIAM<br>Thành viên CÔNG TY CỔ PHẦN NECIMATECH GROUP NECIAM<br>Digital Technology Resources Co., Ltd.<br>A member of NECIMATECH GROUP JOINT STOCK COMPANY</p>
-            `
+                `
+            }
         };
 
-        document.querySelectorAll('.template-list li').forEach(item => {
-            item.addEventListener('click', event => {
-                const templateId = event.target.dataset.templateId;
-                const templateContent = emailTemplates[templateId];
-                const templateTitle = event.target.textContent;
+        let currentTemplateId = null;
 
-                document.getElementById('template-title').textContent = templateTitle;
-                document.getElementById('email-template-display').innerHTML = templateContent; // Use innerHTML to render HTML formatting
-            });
+        const templateListUl = document.getElementById('template-list-ul');
+        const createTemplateBtn = document.getElementById('create-template-btn');
+        const editTemplateBtn = document.getElementById('edit-template-btn');
+        const deleteTemplateBtn = document.getElementById('delete-template-btn');
+        const saveTemplateBtn = document.getElementById('save-template-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const templateEditor = document.getElementById('template-editor');
+        const templateNameInput = document.getElementById('template-name');
+        // const templateEditorContent = document.getElementById('template-editor-content'); // Removed
+        const templateTitleDisplay = document.getElementById('template-title');
+        const emailTemplateDisplay = document.getElementById('email-template-display');
+        const templateActions = document.getElementById('template-actions');
+
+        const quill = new Quill('#template-editor-content', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'font': [] }, { 'size': [] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'script': 'sub' }, { 'script': 'super' }],
+                    [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{ 'indent': '-1' }, { 'indent': '+1' }],
+                    ['direction', { 'align': [] }],
+                    ['link', 'image', 'video'],
+                    ['clean']
+                ]
+            }
         });
+
+        function renderTemplateList() {
+            templateListUl.innerHTML = '';
+            for (const id in emailTemplates) {
+                const li = document.createElement('li');
+                li.dataset.templateId = id;
+                li.textContent = emailTemplates[id].name;
+                templateListUl.appendChild(li);
+            }
+            attachTemplateClickHandlers();
+        }
+
+        function attachTemplateClickHandlers() {
+            document.querySelectorAll('.template-list li').forEach(item => {
+                item.removeEventListener('click', handleTemplateClick); // Prevent duplicate listeners
+                item.addEventListener('click', handleTemplateClick);
+            });
+        }
+
+        function handleTemplateClick(event) {
+            currentTemplateId = event.target.dataset.templateId;
+            const template = emailTemplates[currentTemplateId];
+
+            templateTitleDisplay.textContent = template.name;
+            emailTemplateDisplay.innerHTML = template.content;
+            emailTemplateDisplay.style.display = 'block';
+            templateActions.style.display = 'block';
+            templateEditor.style.display = 'none';
+            console.log('Template content being displayed:', template.content); // Debugging line
+        }
+
+        createTemplateBtn.addEventListener('click', () => {
+            currentTemplateId = null; // Creating a new template
+            templateTitleDisplay.textContent = 'Create New Template';
+            emailTemplateDisplay.style.display = 'none';
+            templateActions.style.display = 'none';
+            templateEditor.style.display = 'block';
+            templateNameInput.value = '';
+            quill.setContents([]); // Clear Quill content
+            emailTemplateDisplay.innerHTML = ''; // Clear display content
+        });
+
+        editTemplateBtn.addEventListener('click', () => {
+            if (currentTemplateId) {
+                const template = emailTemplates[currentTemplateId];
+                templateTitleDisplay.textContent = `Edit: ${template.name}`;
+                emailTemplateDisplay.style.display = 'none';
+                templateActions.style.display = 'none';
+                templateEditor.style.display = 'block';
+                templateNameInput.value = template.name;
+                quill.clipboard.dangerouslyPasteHTML(template.content); // Set Quill content
+            }
+        });
+
+        saveTemplateBtn.addEventListener('click', () => {
+            const name = templateNameInput.value.trim();
+            const content = quill.root.innerHTML; // Get content from Quill
+
+            if (!name || !content) {
+                alert('Template name and content cannot be empty.');
+                return;
+            }
+
+            // Removed redundant check
+
+            if (currentTemplateId) {
+                // Editing existing template
+                emailTemplates[currentTemplateId].name = name;
+                emailTemplates[currentTemplateId].content = content;
+            } else {
+                // Creating new template
+                const newId = 'template-' + Date.now(); // Simple unique ID
+                emailTemplates[newId] = { name, content };
+                currentTemplateId = newId;
+            }
+
+            if (currentTemplateId) {
+                // Editing existing template
+                emailTemplates[currentTemplateId].name = name;
+                emailTemplates[currentTemplateId].content = content;
+            } else {
+                // Creating new template
+                const newId = 'template-' + Date.now(); // Simple unique ID
+                emailTemplates[newId] = { name, content };
+                currentTemplateId = newId;
+            }
+
+            renderTemplateList();
+            handleTemplateClick({ target: { dataset: { templateId: currentTemplateId } } }); // Display the saved template
+        });
+
+        cancelEditBtn.addEventListener('click', () => {
+            if (currentTemplateId) {
+                handleTemplateClick({ target: { dataset: { templateId: currentTemplateId } } });
+            } else {
+                templateTitleDisplay.textContent = 'Select a Template';
+                emailTemplateDisplay.innerHTML = ''; // Clear display content
+                emailTemplateDisplay.style.display = 'block';
+                templateActions.style.display = 'none';
+                templateEditor.style.display = 'none';
+            }
+        });
+
+        deleteTemplateBtn.addEventListener('click', () => {
+            if (currentTemplateId && confirm(`Are you sure you want to delete "${emailTemplates[currentTemplateId].name}"?`)) {
+                delete emailTemplates[currentTemplateId];
+                currentTemplateId = null;
+                renderTemplateList();
+                templateTitleDisplay.textContent = 'Select a Template';
+                emailTemplateDisplay.innerHTML = '';
+                emailTemplateDisplay.style.display = 'block';
+                templateActions.style.display = 'none';
+                templateEditor.style.display = 'none';
+            }
+        });
+
+        // Initial render
+        setTimeout(() => {
+            renderTemplateList();
+            // Automatically click the first template to display its content on load
+            const firstTemplate = document.querySelector('#template-list-ul li');
+            if (firstTemplate) {
+                firstTemplate.click();
+            }
+        }, 100); // Give Quill a moment to initialize
     </script>
 </body>
 </html>
