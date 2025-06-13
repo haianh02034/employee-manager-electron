@@ -2,8 +2,9 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // Assuming axios is installed
-const { findFolderByName, listFilesInFolder, generateDownloadLink, clearSheetData, writeSheetData } = require('../utils/google-sheets'); // Import Google Drive and Sheets functions
+const { findFolderByName, listFilesInFolder, generateDownloadLink, clearSheetData, writeSheetData, uploadFileToDrive } = require('../utils/google-sheets'); // Import Google Drive and Sheets functions
 const DataStore = require('./data-store'); // Import the DataStore module
+const { dialog } = require('electron'); // Import dialog for file selection
 
 // Use a path relative to the application's root directory
 const avatarsDir = path.join(__dirname, '..', '..', 'avatars');
@@ -13,7 +14,8 @@ if (!fs.existsSync(avatarsDir)) {
     fs.mkdirSync(avatarsDir);
 }
 
-const store = new DataStore(); // Initialize the DataStore
+const store = new DataStore(); // Initialize the DataStore for offline-data.json
+const emailTemplatesStore = new DataStore('emailTemplates.json'); // Initialize DataStore for emailTemplates.json
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -91,6 +93,16 @@ app.whenReady().then(() => {
       return true; // Indicate success
   });
 
+  // IPC handlers for Email Templates data storage
+  ipcMain.handle('load-email-templates', () => {
+      return emailTemplatesStore.getAllData();
+  });
+
+  ipcMain.handle('save-email-templates', (event, templates) => {
+      emailTemplatesStore.setAllData(templates);
+      return true; // Indicate success
+  });
+
   ipcMain.handle('read-data', async (event, { spreadsheetId, range }) => {
     try {
         const { readData } = require('../utils/google-sheets');
@@ -132,6 +144,25 @@ app.whenReady().then(() => {
           console.error('Error in write-sheet-data IPC handler:', error);
           throw error;
       }
+  });
+
+  ipcMain.handle('upload-file-to-drive', async (event, { filePath, fileName, mimeType, folderId }) => {
+    try {
+        const result = await uploadFileToDrive(filePath, fileName, mimeType, folderId);
+        return result;
+    } catch (error) {
+        console.error('Error in upload-file-to-drive IPC handler:', error);
+        throw error;
+    }
+  });
+
+  ipcMain.handle('open-file-dialog', async (event, options) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), options);
+    if (canceled) {
+      return null;
+    } else {
+      return filePaths[0];
+    }
   });
 
   ipcMain.handle('downloadAvatar', async (event, avatarUrl) => {

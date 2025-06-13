@@ -34,7 +34,6 @@
             width: 70%;
         }
         #email-template-display {
-     
             min-height: 100px; /* Ensure it has some height */
         }
     </style>
@@ -66,30 +65,30 @@
                 <button id="cancel-edit-btn">Cancel</button>
             </div>
 
-            <div id="template-actions" style="display: none;">
-                <button id="edit-template-btn">Edit Template</button>
-                <button id="delete-template-btn">Delete Template</button>
+            <div id="template-actions" class="context-menu" style="display: none; position: absolute; background-color: #f9f9f9; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 1000;">
+                <button id="edit-template-btn" style="display: block; width: 100%; padding: 8px; text-align: left; border: none; background: none; cursor: pointer;">Edit Template</button>
+                <button id="delete-template-btn" style="display: block; width: 100%; padding: 8px; text-align: left; border: none; background: none; cursor: pointer;">Delete Template</button>
+                <button id="send-template-btn" style="display: block; width: 100%; padding: 8px; text-align: left; border: none; background: none; cursor: pointer;">Send Email</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Selection Modal -->
+    <div id="employee-selection-modal" style="display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+        <div style="background-color: white; padding: 20px; border-radius: 8px; width: 500px; max-height: 80%; overflow-y: auto;">
+            <h3>Select Employees to Send Email</h3>
+            <div id="employee-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px;">
+                <!-- Employee list will be rendered here -->
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="send-selected-employees-btn">Send Selected</button>
+                <button id="cancel-send-btn">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        let emailTemplates = {
-            payslip: {
-                name: "THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG",
-                content: `
-<p>THÔNG BÁO: GỬI PHIẾU LƯƠNG THÁNG</p>
-<p>Kính gửi anh/chị [Tên],<br>Mã số nhân viên: [Mã số nhân viên]</p>
-<p>Dear Mr./Ms. [Name],<br>Employee ID: [Employee ID]</p>
-<p>Công ty xin gửi đến anh/chị phiếu lương của tháng [Tháng/Năm], đính kèm trong email này.<br>We are pleased to send you your payslip for [Month/Year], attached to this email.</p>
-<p>Vui lòng kiểm tra các thông tin trong phiếu lương. Nếu có bất kỳ thắc mắc hoặc nhầm lẫn nào, anh/chị vui lòng phản hồi email này hoặc liên hệ trực tiếp với Phòng Tài Chính – Kế Toán để được hỗ trợ.<br>Please review the details carefully. If you have any questions or notice any discrepancies, kindly reply to this email or contact the Finance – Accounting Department directly for assistance.</p>
-<p>Trân trọng,<br>Sincerely,</p>
-<p>Phòng Tài Chính – Kế Toán<br>Finance – Accounting Department<br>Ms. Nguyễn Thị Thuỳ Linh – 0388 023 911</p>
-<hr>
-<p>CÔNG TY TNHH TÀI NGUYÊN CÔNG NGHỆ SỐ NECIAM<br>Thành viên CÔNG TY CỔ PHẦN NECIMATECH GROUP NECIAM<br>Digital Technology Resources Co., Ltd.<br>A member of NECIMATECH GROUP JOINT STOCK COMPANY</p>
-                `
-            }
-        };
+        let emailTemplates = {}; // Initialize as empty, will be loaded from file
 
         let currentTemplateId = null;
 
@@ -105,24 +104,75 @@
         const templateTitleDisplay = document.getElementById('template-title');
         const emailTemplateDisplay = document.getElementById('email-template-display');
         const templateActions = document.getElementById('template-actions');
+        const sendTemplateBtn = document.getElementById('send-template-btn'); // New Send button in context menu
+        const employeeSelectionModal = document.getElementById('employee-selection-modal'); // Employee selection modal
+        const employeeListContainer = document.getElementById('employee-list-container'); // Container for employee list
+        const sendSelectedEmployeesBtn = document.getElementById('send-selected-employees-btn'); // Send button in modal
+        const cancelSendBtn = document.getElementById('cancel-send-btn'); // Cancel button in modal
 
         const quill = new Quill('#template-editor-content', {
             theme: 'snow',
             modules: {
-                toolbar: [
-                    [{ 'font': [] }, { 'size': [] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'color': [] }, { 'background': [] }],
-                    [{ 'script': 'sub' }, { 'script': 'super' }],
-                    [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                    [{ 'indent': '-1' }, { 'indent': '+1' }],
-                    ['direction', { 'align': [] }],
-                    ['link', 'image', 'video'],
-                    ['clean']
-                ]
+                toolbar: {
+                    container: [
+                        [{ 'font': [] }, { 'size': [] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'script': 'sub' }, { 'script': 'super' }],
+                        [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'indent': '-1' }, { 'indent': '+1' }],
+                        ['direction', { 'align': [] }],
+                        ['link', 'image', 'video'],
+                        ['clean']
+                    ],
+                    handlers: {
+                        image: selectLocalImage // Custom handler for image button
+                    }
+                }
             }
         });
+
+        async function selectLocalImage() {
+            console.log('selectLocalImage called.'); // Debugging line 1
+
+            const file = await window.electronAPI.openFileDialog({
+                properties: ['openFile'],
+                filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif'] }]
+            });
+
+            if (file) {
+                console.log('File selected:', file); // Debugging line 2
+                const filePath = file;
+                const fileName = filePath.split('/').pop().split('\\').pop(); // Get filename from path
+                const mimeType = `image/${fileName.split('.').pop()}`; // Simple mime type guess
+
+                try {
+                    console.log('Attempting to upload file to Drive...'); // Debugging line 3
+                    const uploadResult = await window.electronAPI.uploadFileToDrive({
+                        filePath: filePath,
+                        fileName: fileName,
+                        mimeType: mimeType,
+                        folderId: null // You can specify a Google Drive folder ID here if needed
+                    });
+
+                    if (uploadResult && uploadResult.webContentLink) {
+                        console.log('Upload successful. Inserting image:', uploadResult.webContentLink); // Debugging line 4
+                        const range = quill.getSelection();
+                        quill.insertEmbed(range.index, 'image', uploadResult.webContentLink);
+                        quill.setSelection(range.index + 1); // Move cursor after the image
+                    } else {
+                        console.log('Upload failed or no valid link returned.'); // Debugging line 5
+                        alert('Failed to upload image or get a valid link.');
+                    }
+                } catch (error) {
+                    console.error('Error uploading image:', error); // Debugging line 6
+                    alert('Error uploading image: ' + error.message);
+                }
+            } else {
+                console.log('File selection cancelled or no file selected.'); // Debugging line 7
+            }
+        }
 
         function renderTemplateList() {
             templateListUl.innerHTML = '';
@@ -139,8 +189,41 @@
             document.querySelectorAll('.template-list li').forEach(item => {
                 item.removeEventListener('click', handleTemplateClick); // Prevent duplicate listeners
                 item.addEventListener('click', handleTemplateClick);
+
+                // Add right-click listener for context menu
+                item.removeEventListener('contextmenu', handleTemplateContextMenu); // Prevent duplicate listeners
+                item.addEventListener('contextmenu', handleTemplateContextMenu);
             });
         }
+
+        function handleTemplateContextMenu(event) {
+            event.preventDefault(); // Prevent default browser context menu
+            event.stopPropagation(); // Stop event from bubbling up to document
+            currentTemplateId = event.target.dataset.templateId;
+            console.log('Right-clicked on template ID:', currentTemplateId);
+            console.log('Mouse coordinates:', event.pageX, event.pageY);
+            console.log('templateActions element:', templateActions); // Debugging line
+
+            // Position the custom context menu
+            templateActions.style.left = event.pageX + 'px';
+            templateActions.style.top = event.pageY + 'px';
+            templateActions.style.display = 'block';
+            console.log('Template actions display style:', templateActions.style.display);
+        }
+
+        // Hide context menu when clicking anywhere else
+        document.addEventListener('click', (event) => {
+            if (!templateActions.contains(event.target) && event.button !== 2) { // Check if click is outside menu and not a right-click
+                templateActions.style.display = 'none';
+            }
+        });
+
+        // Hide context menu when right-clicking anywhere else
+        document.addEventListener('contextmenu', (event) => {
+            if (!templateActions.contains(event.target)) {
+                templateActions.style.display = 'none';
+            }
+        });
 
         function handleTemplateClick(event) {
             currentTemplateId = event.target.dataset.templateId;
@@ -166,11 +249,12 @@
         });
 
         editTemplateBtn.addEventListener('click', () => {
+            templateActions.style.display = 'none'; // Hide menu after click
             if (currentTemplateId) {
                 const template = emailTemplates[currentTemplateId];
                 templateTitleDisplay.textContent = `Edit: ${template.name}`;
                 emailTemplateDisplay.style.display = 'none';
-                templateActions.style.display = 'none';
+                // templateActions.style.display = 'none'; // Already hidden
                 templateEditor.style.display = 'block';
                 templateNameInput.value = template.name;
                 quill.clipboard.dangerouslyPasteHTML(template.content); // Set Quill content
@@ -212,6 +296,7 @@
 
             renderTemplateList();
             handleTemplateClick({ target: { dataset: { templateId: currentTemplateId } } }); // Display the saved template
+            window.electronAPI.saveEmailTemplates(emailTemplates); // Save to file
         });
 
         cancelEditBtn.addEventListener('click', () => {
@@ -227,6 +312,7 @@
         });
 
         deleteTemplateBtn.addEventListener('click', () => {
+            templateActions.style.display = 'none'; // Hide menu after click
             if (currentTemplateId && confirm(`Are you sure you want to delete "${emailTemplates[currentTemplateId].name}"?`)) {
                 delete emailTemplates[currentTemplateId];
                 currentTemplateId = null;
@@ -234,13 +320,78 @@
                 templateTitleDisplay.textContent = 'Select a Template';
                 emailTemplateDisplay.innerHTML = '';
                 emailTemplateDisplay.style.display = 'block';
-                templateActions.style.display = 'none';
+                // templateActions.style.display = 'none'; // Already hidden
                 templateEditor.style.display = 'none';
+                window.electronAPI.saveEmailTemplates(emailTemplates); // Save to file
             }
         });
 
+        sendTemplateBtn.addEventListener('click', async () => {
+            templateActions.style.display = 'none'; // Hide context menu
+            if (currentTemplateId) {
+                // Load employee data and display modal
+                const allOfflineData = await window.electronAPI.getAllOfflineData();
+                const employees = allOfflineData.employeeData || []; // Correctly access 'employeeData' key
+
+                employeeListContainer.innerHTML = ''; // Clear previous list
+                if (employees.length > 0) {
+                    employees.forEach((employee, index) => {
+                        // Assuming employee data is an array like [Name, EmployeeID, ...]
+                        const employeeName = employee[1]; // Name is at index 1
+                        const employeeId = employee[2]; // Employee ID is at index 2
+
+                        const div = document.createElement('div');
+                        div.style.marginBottom = '8px';
+                        div.innerHTML = `
+                            <label>
+                                <input type="checkbox" class="employee-checkbox" data-employee-id="${employeeId}" data-employee-name="${employeeName}">
+                                ${employeeName} - ${employeeId}
+                            </label>
+                        `;
+                        employeeListContainer.appendChild(div);
+                    });
+                } else {
+                    employeeListContainer.innerHTML = '<p>No employee data found in offline-data.json.</p>';
+                }
+                employeeSelectionModal.style.display = 'flex'; // Show modal
+            } else {
+                alert('Please select a template to send.');
+            }
+        });
+
+        sendSelectedEmployeesBtn.addEventListener('click', () => {
+            const selectedEmployees = [];
+            document.querySelectorAll('.employee-checkbox:checked').forEach(checkbox => {
+                selectedEmployees.push({
+                    id: checkbox.dataset.employeeId,
+                    name: checkbox.dataset.employeeName
+                });
+            });
+
+            if (selectedEmployees.length === 0) {
+                alert('Please select at least one employee to send the email.');
+                return;
+            }
+
+            const template = emailTemplates[currentTemplateId];
+            const confirmationMessage = `Are you sure you want to send "${template.name}" to ${selectedEmployees.length} selected employees?`;
+
+            if (confirm(confirmationMessage)) {
+                // Here you would implement the actual email sending logic
+                // This might involve another IPC call to the main process
+                // to trigger an email sending service (e.g., via Nodemailer, API)
+                alert(`Email "${template.name}" sent to:\n${selectedEmployees.map(e => e.name).join('\n')}`);
+                employeeSelectionModal.style.display = 'none'; // Hide modal
+            }
+        });
+
+        cancelSendBtn.addEventListener('click', () => {
+            employeeSelectionModal.style.display = 'none'; // Hide modal
+        });
+
         // Initial render
-        setTimeout(() => {
+        setTimeout(async () => {
+            emailTemplates = await window.electronAPI.loadEmailTemplates();
             renderTemplateList();
             // Automatically click the first template to display its content on load
             const firstTemplate = document.querySelector('#template-list-ul li');

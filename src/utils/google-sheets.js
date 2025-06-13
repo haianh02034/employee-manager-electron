@@ -5,7 +5,7 @@ const auth = new google.auth.GoogleAuth({
     keyFile: './gg-sheets-api-441108-f48f9f374902.json',
     scopes: [
         'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.readonly' // Added Drive read-only scope
+        'https://www.googleapis.com/auth/drive' // Changed to full Drive scope for upload
     ]
 });
 
@@ -16,7 +16,7 @@ async function getGoogleSheetsClient() {
         keyFile: './gg-sheets-api-441108-f48f9f374902.json',
         scopes: [
             'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive.readonly' // Added Drive read-only scope
+            'https://www.googleapis.com/auth/drive' // Changed to full Drive scope for upload
         ]
     });
     const client = await auth.getClient();
@@ -31,7 +31,7 @@ async function getGoogleDriveClient() {
         keyFile: './gg-sheets-api-441108-f48f9f374902.json',
         scopes: [
             'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive.readonly' // Added Drive read-only scope
+            'https://www.googleapis.com/auth/drive' // Changed to full Drive scope for upload
         ]
     });
     try {
@@ -154,16 +154,59 @@ async function writeSheetData(spreadsheetId, range, values) {
     }
 }
 
+async function uploadFileToDrive(filePath, fileName, mimeType, folderId = null) {
+    const drive = await getGoogleDriveClient();
+    const fs = require('fs'); // Require fs here as it's used in this function
+
+    const fileMetadata = {
+        name: fileName,
+        parents: folderId ? [folderId] : [], // Optional: specify parent folder
+    };
+    const media = {
+        mimeType: mimeType,
+        body: fs.createReadStream(filePath),
+    };
+
+    try {
+        const file = await drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id, webContentLink, webViewLink', // Request necessary fields
+        });
+        console.log('File uploaded to Drive:', file.data.id);
+
+        // Make the file publicly accessible (optional, but often needed for images in emails)
+        await drive.permissions.create({
+            fileId: file.data.id,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+        console.log('File permissions updated to public.');
+
+        return {
+            id: file.data.id,
+            webContentLink: file.data.webContentLink, // Direct link to content
+            webViewLink: file.data.webViewLink // Link to view in browser
+        };
+    } catch (error) {
+        console.error('Error uploading file to Google Drive:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     getGoogleSheetsClient,
     getGoogleDriveClient,
     findFolderByName,
     listFilesInFolder,
     generateDownloadLink,
-    clearSheetData, // Export the new function
-    writeSheetData, // Export the new function
+    clearSheetData,
+    writeSheetData,
     readData,
-    listFoldersInFolder
+    listFoldersInFolder,
+    uploadFileToDrive // Export the new upload function
 };
 
 async function listFoldersInFolder(folderId) {
